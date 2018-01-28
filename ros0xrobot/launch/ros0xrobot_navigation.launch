@@ -1,0 +1,6 @@
+<!--
+Used for visualising the 0xRobot while navigating a map.
+-->
+<launch>
+<node name="rviz" pkg="rviz" type="rviz" args="-d $(find ros0xrobot)/rviz/ros0xrobot_navigation.rviz"/>
+</launch>
