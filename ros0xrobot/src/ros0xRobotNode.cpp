@@ -183,9 +183,9 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
 
   loopCount = 0;
   updateFrequency = 10;
-  velocityX = 0;
-  velocityY = 0;
-  velocityTheta = 0;
+  velocityX = 0.0;
+  velocityY = 0.0;
+  velocityTheta = 0.0;
 
   gpOutStatus = 0;
 
@@ -453,16 +453,16 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   position->pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
   setPoseCovariance(position);
 
-  velocityX += deltaX;
-  velocityY += deltaY;
-  velocityTheta += deltaTheta;
-
-  position->twist.twist.linear.x =
-      OxRobot->getVelocityX(OxRobot->comm_handle, deltaX, updateFrequency);
-  position->twist.twist.linear.y =
-      OxRobot->getVelocityY(OxRobot->comm_handle, deltaY, updateFrequency);
-  position->twist.twist.angular.z = OxRobot->getVelocityTheta(
+  velocityX = OxRobot->getVelocityX(
+      OxRobot->comm_handle, deltaX, updateFrequency);
+  velocityY = OxRobot->getVelocityY(
+      OxRobot->comm_handle, deltaY, updateFrequency);
+  velocityTheta = OxRobot->getVelocityTheta(
       OxRobot->comm_handle, deltaTheta, updateFrequency);
+
+  position->twist.twist.linear.x = 
+      sqrt(velocityX*velocityX + velocityY*velocityY);
+  position->twist.twist.angular.z = velocityTheta;
   setTwistCovariance(position);
 
   leftCountPrev = leftCount;
