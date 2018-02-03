@@ -9,10 +9,10 @@
 #define DIST_THRESH 0.01
 #define ANGLE_THRESH 0.01
 
-#define ka 1.0	// responsiveness to distance from path 
-#define kb 1.0	// responsiveness to angular deviation
+#define ka 1.5	// responsiveness to distance from path 
+#define kb 0.5	// responsiveness to angular deviation
 
-#define SPEED_SETPOINT 0.9
+#define SPEED_SETPOINT 0.7
 #define YAW_TOLERANCE 0.052
 
 #define sampling_rate 10.0
@@ -34,13 +34,13 @@ class UnicycleControl{
 		 path.poses[0].pose.orientation.z = 0.0; // sin(yaw/2)
 		 path.poses[0].pose.orientation.w = 1.0; // cos(yaw/2)
 		 path.poses[1].header = path.header;
-		 path.poses[1].pose.position.x = 5.0;
+		 path.poses[1].pose.position.x = 4.0;
 		 path.poses[1].pose.position.y = 0.0;
 		 path.poses[1].pose.orientation.z = sin(0*M_PI/360);
 		 path.poses[1].pose.orientation.w = cos(0*M_PI/360);
 		 path.poses[2].header = path.header;
 		 path.poses[2].pose.position.x = 5.0;
-		 path.poses[2].pose.position.y = 0.0;
+		 path.poses[2].pose.position.y = -1.0;
 		 path.poses[2].pose.orientation.z = sin(-90*M_PI/360);
 		 path.poses[2].pose.orientation.w = cos(-90*M_PI/360);
 		 path.poses[3].header = path.header;
