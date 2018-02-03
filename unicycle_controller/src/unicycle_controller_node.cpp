@@ -12,7 +12,8 @@
 #define ka 1.0	// responsiveness to distance from path 
 #define kb 1.0	// responsiveness to angular deviation
 
-#define SPEED_SETPOINT 0.5
+#define SPEED_SETPOINT 0.9
+#define YAW_TOLERANCE 0.052
 
 #define sampling_rate 10.0
 
@@ -26,17 +27,57 @@ class UnicycleControl{
 		 // Setting up a fixed path here for testing purpose
 		 path.header.stamp = ros::Time::now();
 		 path.header.frame_id = "odom";
-		 path.poses.resize(2);
+		 path.poses.resize(10);
 		 path.poses[0].header = path.header;
 		 path.poses[0].pose.position.x = 0.0;
 		 path.poses[0].pose.position.y = 0.0;
 		 path.poses[0].pose.orientation.z = 0.0; // sin(yaw/2)
 		 path.poses[0].pose.orientation.w = 1.0; // cos(yaw/2)
 		 path.poses[1].header = path.header;
-		 path.poses[1].pose.position.x = 1.0;
+		 path.poses[1].pose.position.x = 5.0;
 		 path.poses[1].pose.position.y = 0.0;
-		 path.poses[1].pose.orientation.z = sin(0.0/2);
-		 path.poses[1].pose.orientation.w = cos(0.0/2);
+		 path.poses[1].pose.orientation.z = sin(0*M_PI/360);
+		 path.poses[1].pose.orientation.w = cos(0*M_PI/360);
+		 path.poses[2].header = path.header;
+		 path.poses[2].pose.position.x = 5.0;
+		 path.poses[2].pose.position.y = 0.0;
+		 path.poses[2].pose.orientation.z = sin(-90*M_PI/360);
+		 path.poses[2].pose.orientation.w = cos(-90*M_PI/360);
+		 path.poses[3].header = path.header;
+		 path.poses[3].pose.position.x = 5.0;
+		 path.poses[3].pose.position.y = -5.0;
+		 path.poses[3].pose.orientation.z = sin(-90*M_PI/360);
+		 path.poses[3].pose.orientation.w = cos(-90*M_PI/360);
+		 path.poses[4].header = path.header;
+		 path.poses[4].pose.position.x = 5.0;
+		 path.poses[4].pose.position.y = -5.0;
+		 path.poses[4].pose.orientation.z = sin(-80*M_PI/360);
+		 path.poses[4].pose.orientation.w = cos(-80*M_PI/360);
+		 path.poses[5].header = path.header;
+		 path.poses[5].pose.position.x = 5.4;
+		 path.poses[5].pose.position.y = -10.0;
+		 path.poses[5].pose.orientation.z = sin(-90*M_PI/360);
+		 path.poses[5].pose.orientation.w = cos(-90*M_PI/360);
+		 path.poses[6].header = path.header;
+		 path.poses[6].pose.position.x = 5.4;
+		 path.poses[6].pose.position.y = -20.0;
+		 path.poses[6].pose.orientation.z = sin(-90*M_PI/360);
+		 path.poses[6].pose.orientation.w = cos(-90*M_PI/360);
+		 path.poses[7].header = path.header;
+		 path.poses[7].pose.position.x = 1.6;
+		 path.poses[7].pose.position.y = -23.8;
+		 path.poses[7].pose.orientation.z = sin(-180*M_PI/360);
+		 path.poses[7].pose.orientation.w = cos(-180*M_PI/360);
+		 path.poses[8].header = path.header;
+		 path.poses[8].pose.position.x = -28.4;
+		 path.poses[8].pose.position.y = -23.8;
+		 path.poses[8].pose.orientation.z = sin(-180*M_PI/360);
+		 path.poses[8].pose.orientation.w = cos(-180*M_PI/360);
+		 path.poses[9].header = path.header;
+		 path.poses[9].pose.position.x = -30.4;
+		 path.poses[9].pose.position.y = -21.8;
+		 path.poses[9].pose.orientation.z = sin(90*M_PI/360);
+		 path.poses[9].pose.orientation.w = cos(90*M_PI/360);
 		}
 
 		// Reads current state, calls other functions and publishes control
@@ -102,9 +143,8 @@ class UnicycleControl{
 		void switchPathPiece(){
 			if (path_iterator == 0 || 
 				(path_type == 'l' && distance(x_prev, y_prev, x, y) > length_path) ||
-				(path_type == 'c' && distance(x_prev, y_prev, x, y) > length_path) ||
-				(path_type == 'p' && 
-					abs(angWrap(yaw-yaw_prev)) > abs(angWrap(yaw_path-yaw_prev)))){
+				(path_type == 'a' && distance(x_prev, y_prev, x, y) > length_path) ||
+				(path_type == 'p' && abs(angWrap(yaw-yaw_d)) < YAW_TOLERANCE)){
 				path_iterator++;
 				if (path_iterator < path.poses.size()){
 					// Getting initial and final poses for the path-piece
