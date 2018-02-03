@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>A controller for path following of a unicycle model robot. Based on http://vislab.isr.ist.utl.pt/publications/08-jetc-rcarona-vcontrol.pdf</description>
 
-  <maintainer email="igvc.iitk@gmail.com">Aalap Shah</maintainer>
+  <maintainer email="igvc.iitk@gmail.com">Aalap Shah, Vardhan Gupta</maintainer>
 
   <license>TODO</license>
 
