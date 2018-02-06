@@ -15,8 +15,7 @@ class img_to_laser
 public:
   img_to_laser()
   {
-
-  	// Constructor Function
+    // Constructor Function
     ROS_INFO("Started Running");
     pub_ = nh_.advertise<sensor_msgs::LaserScan>("img_scan", 1000);
     sub_ = nh_.subscribe("final_image", 1000, &img_to_laser::range_finder, this);
