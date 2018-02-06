@@ -4,7 +4,7 @@
 
 This node gives laser scan as read by a virtual Lidar put at some position on binary classified image.
 
-Note : This node is not yet tested.
+Note : This node is tested and working perfectly.
 
 
 ## ros0xrobot
