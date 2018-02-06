@@ -66,8 +66,8 @@ public:
           if ((bool)gs.at<uchar>(j, i) && (lid_x != i && lid_y != j))
           {
            /*  
-          		Calculate x distance and y distance and 
-          	 	invert y (In image convention y is inverted)
+          	Calculate x distance and y distance and 
+          	invert y (In image convention y is inverted)
             */
             int x_dist = i - lid_x;
             int y_dist = -(j - lid_y);
