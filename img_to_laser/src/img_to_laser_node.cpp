@@ -52,11 +52,12 @@ public:
                  cv_bridge::toCvShare(msg, "bgr8")->image.cols, CV_8UC3);
       gs1 = cv_bridge::toCvShare(msg, "bgr8")->image;
       cv::Mat gs;
-      cv::cvtColor(gs1,gs, cv::COLOR_BGR2GRAY);      // Adjust max range from resolution of the image
+      cv::cvtColor(gs1,gs, cv::COLOR_BGR2GRAY);     
+      // Adjust max range from resolution of the image
       scan_.range_max = sqrt(gs.cols * gs.cols + gs.rows * gs.rows);
-      
+      // Debug if parameter is set or not
       ROS_INFO("Params are lidar x : %3d lidar y : %3d", lid_x, lid_y);
-
+      
       // Convert from image to scan
       for (int i = 0; i < gs.cols; i++)
       {
@@ -64,11 +65,10 @@ public:
         {
           if ((bool)gs.at<uchar>(j, i) && (lid_x != i && lid_y != j))
           {
-
-          	/*  
+           /*  
           		Calculate x distance and y distance and 
           	 	invert y (In image convention y is inverted)
-          	*/
+            */
             int x_dist = i - lid_x;
             int y_dist = -(j - lid_y);
             float tot_dist = sqrt(x_dist*x_dist + y_dist*y_dist)/SCALING_FACTOR;
