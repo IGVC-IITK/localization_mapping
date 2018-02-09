@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<!--
+	Used for visualising both rplidars in action.  
+	
+	It requires rplidar.launch.
+ -->
+<launch>
+
+	<param name="parent_frame" type="string" value="laser_front"/>
+	<param name="child_frame" type="string" value="laser_rear"/>
+	<node name="tf_calibration_node" pkg="tf_calibration" type="tf_calibration_node" output="screen"/>
+
+	<node name="rplidarNode1" pkg="rplidar_ros" type="rplidarNode" output="screen">
+		<param name="serial_port"         type="string" value="/dev/ttyUSB0"/>  
+		<param name="serial_baudrate"     type="int"    value="115200"/>
+		<param name="frame_id"            type="string" value="laser_front"/>
+		<param name="inverted"            type="bool"   value="false"/>
+		<param name="angle_compensate"    type="bool"   value="true"/>
+		<remap from="/scan" to="/scan_1"/>
+	</node>
+
+	<node name="rplidarNode2"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
+		<param name="serial_port"         type="string" value="/dev/ttyUSB1"/>  
+		<param name="serial_baudrate"     type="int"    value="115200"/>
+		<param name="frame_id"            type="string" value="laser_rear"/>
+		<param name="inverted"            type="bool"   value="false"/>
+		<param name="angle_compensate"    type="bool"   value="true"/>
+		<remap from="/scan" to="/scan_2"/>
+	</node>
+
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find tf_calibration)/rviz/lidar_lidar_calib.rviz" />
+
+	<node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" output="screen"/>
+	
+</launch>
