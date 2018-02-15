@@ -1,0 +1,10 @@
+<launch>
+
+<node name="nmea_navsat_driver" pkg="nmea_navsat_driver" type="nmea_serial_driver">
+<param name="port" value="/dev/ttyUSB2"/>
+<param name="baud" value="38400"/>
+</node>
+
+<node pkg="tf" type="static_transform_publisher" name="gps_link1_broadcaster" args="-0.181 -0.191 0.617 0 0 0 base_link gps 100" />
+
+</launch>

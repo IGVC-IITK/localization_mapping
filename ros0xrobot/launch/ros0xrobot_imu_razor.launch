@@ -1,0 +1,17 @@
+<launch>
+<node name="ros0xrobot" pkg="ros0xrobot" type="ros0xrobotNode">
+<param name="port" value="/dev/ttyUSB0" />
+<param name="CountsPerRev" value="2000" />
+<param name="WheelDiameter" value="255.0" />
+<param name="AxelLength" value="700.0" />
+</node>
+
+
+<node pkg="razor_imu_9dof" type="imu_node.py" name="imu_node" output="screen">
+<rosparam file="$(find razor_imu_9dof)/config/my_razor.yaml" command="load"/>
+<param name="port" value="/dev/ttyUSB1" />
+</node>
+
+
+<node pkg="tf" type="static_transform_publisher" name="imu_link1_broadcaster" args="-0.181 -0.191 0.617 0 0 0 base_link base_imu_link 100" />
+</launch>

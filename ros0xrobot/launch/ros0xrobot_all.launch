@@ -1,0 +1,24 @@
+<launch>
+<node name="ros0xrobot" pkg="ros0xrobot" type="ros0xrobotNode">
+<param name="port" value="/dev/ttyUSB0" />
+<param name="CountsPerRev" value="3840" />
+<param name="WheelDiameter" value="100.0" />
+<param name="axelLength" value="290.0" />
+<param name="enableImu" value="true" />
+<param name="enableSonar" value="true" />
+</node>
+
+<node name="hokuyo_node" pkg="hokuyo_node" type="hokuyo_node" />
+
+<node name="nmea_navsat_driver" pkg="nmea_navsat_driver" type="nmea_serial_driver"> 
+<param name="port" value="/dev/ttyUSB0" />
+<param name="baud" value="9600" />
+</node>
+
+<node pkg="tf" type="static_transform_publisher" name="Laser_link1_broadcaster" args="0.1 0 0.1 0 0 0 base_link laser 100" />
+
+<node pkg="tf" type="static_transform_publisher" name="imu_link1_broadcaster" args="0 0 0.1 0 0 0 base_link imu_frame 100" />
+
+<node pkg="tf" type="static_transform_publisher" name="gps_link1_broadcaster" args="0 0.1 0.1 0 0 0 base_link gps 100" />
+
+</launch>

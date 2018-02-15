@@ -1,0 +1,8 @@
+<launch>
+<node name="LMS1xx_node" pkg="lms1xx" type="LMS1xx_node" >
+<param name="host" value="192.168.0.1" />
+</node>
+
+<node pkg="tf" type="static_transform_publisher" name="Laser_link1_broadcaster" args="0.3315 0 0.381 0 0 0 base_link laser 100" />
+
+</launch>

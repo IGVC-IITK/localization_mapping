@@ -1,0 +1,14 @@
+<launch>
+
+	<!--Set your virtual lidar position here-->
+	<param name="virtual_lidar_x" value="400"/>
+	<param name="virtual_lidar_y" value="400"/>
+
+	<node pkg="img_to_laser" type="img_to_laser_node" name="image_to_laser_scan" clear_params="true">
+	
+	<!-- Change the topics here -->
+    	<remap from="final_image" to="final_image"/>
+    	<remap from="img_scan"  to="img_scan"/>
+
+  	</node>
+</launch>
