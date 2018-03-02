@@ -137,6 +137,7 @@ add_executable(ros0xrobotNode src/ros0xRobotNode.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(ros0xNode ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(ros0xrobotNode ${PROJECT_NAME}_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
  target_link_libraries(ros0xrobotNode
