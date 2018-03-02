@@ -2,7 +2,7 @@
 <node name="ros0xrobot" pkg="ros0xrobot" type="ros0xrobotNode" output="screen">
 <param name="port" value="/dev/ttyUSB0" />
 <param name="CountsPerRev" value="2048" />
-<param name="WheelDiameter" value="250.0" />
+<param name="WheelDiameter" value="254.4" />
 <param name="AxelLength" value="600.0" />
 </node>
 

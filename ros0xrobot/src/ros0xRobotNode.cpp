@@ -14,6 +14,7 @@
 #include <sensor_msgs/point_cloud_conversion.h>
 #include <tf/transform_broadcaster.h>
 
+
 class Ros0xRobotNode
 {
 public:
@@ -117,6 +118,7 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   // See ROS Wiki for further details.
   tf_prefix = tf::getPrefixParam(n);
   frame_id_odom = tf::resolve(tf_prefix, "odom");
+  // frame_id_base_link = tf::resolve(tf_prefix, "base_link");
   frame_id_base_link = tf::resolve(tf_prefix, "base_link");
   frame_id_sonar = tf::resolve(tf_prefix, "sonar_frame");
   frame_id_irRangeSensor = tf::resolve(tf_prefix, "irRange_frame");
@@ -141,7 +143,7 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   if (enableImu)
     imuPub = n.advertise<sensor_msgs::Imu>("imu", 50);
 
-  distancePerCount = (wheelDiameter * 22 / 7.0) / countsPerRev;
+  distancePerCount = (wheelDiameter * M_PI) / countsPerRev;
   ROS_INFO("Ros0xRobotNode: distancePerCount = %f", distancePerCount);
 
   // set imu covariance
@@ -182,7 +184,10 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   orientation_imu = 0;
 
   loopCount = 0;
-  updateFrequency = 10;
+  // Keeping the frequency higher than 10 Hz causes the velocity readings to
+  // get more noisy (probably due to encoder ticks not being registered at a
+  // constant rate), which can cause problems in generating filtered odometry.
+  updateFrequency = 10; 
   velocityX = 0.0;
   velocityY = 0.0;
   velocityTheta = 0.0;
@@ -267,7 +272,9 @@ void Ros0xRobotNode::spin()
     odom_trans.transform.translation.z = 0.0;
     odom_trans.transform.rotation = position.pose.pose.orientation;
 
-    odom_broadcaster.sendTransform(odom_trans);
+    // tf should not be published if ros0xrobot/odom is not the final (fused) odometry
+    // the sensor fusion node (if any) should publish the tf instead
+    // odom_broadcaster.sendTransform(odom_trans);
 
     if ((enableSonar) &&
         (OxRobot->getSonarSensorRangeArray(
@@ -446,7 +453,7 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   x += deltaX;
   y += deltaY;
   theta += deltaTheta;
-  theta_Deg = (180.0 * 7.0 / 22.0) * theta;
+  theta_Deg = (180.0 / M_PI) * theta;
 
   position->pose.pose.position.x = x / 1000;
   position->pose.pose.position.y = y / 1000;
@@ -461,7 +468,13 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
       OxRobot->comm_handle, deltaTheta, updateFrequency);
 
   position->twist.twist.linear.x = 
-      sqrt(velocityX*velocityX + velocityY*velocityY);
+      velocityX*cos(theta) + velocityY*sin(theta);
+  position->twist.twist.linear.y = 0; // non-holonomic vehicle dynamics
+  position->twist.twist.linear.z = 0; // ground robot => vz=0 in vehicle frame
+  // Not publishing twist.linear the way it originally used to
+  // (since it was not as per ROS conventions)
+  // position->twist.twist.linear.x = velocityX;
+  // position->twist.twist.linear.y = velocityY;
   position->twist.twist.angular.z = velocityTheta;
   setTwistCovariance(position);
 
@@ -471,6 +484,8 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
 
 void Ros0xRobotNode::setPoseCovariance(nav_msgs::Odometry* position)
 {
+  // Publishing this just for the sake of it.
+  // In reality, pose.covariance grows with time and is unbounded.
   position->pose.covariance[0] = 0.25;
   position->pose.covariance[7] = 0.25;
   position->pose.covariance[14] = 0.25;
@@ -481,12 +496,14 @@ void Ros0xRobotNode::setPoseCovariance(nav_msgs::Odometry* position)
 
 void Ros0xRobotNode::setTwistCovariance(nav_msgs::Odometry* position)
 {
-  position->twist.covariance[0] = 0.04;
-  position->twist.covariance[7] = 0.04;
-  position->twist.covariance[14] = 0.04;
-  position->twist.covariance[21] = 0.09;
-  position->twist.covariance[28] = 0.09;
-  position->twist.covariance[35] = 0.09;
+  position->twist.covariance[0] = 0.0025;   // assuming ~5% error at 1 m/s
+  position->twist.covariance[7] = 0.0001;   // non-holonomic vehicle dynamics
+  position->twist.covariance[14] = 0.0001;  // ground robot => vz=0 in vehicle frame
+  // Note that twist.angular.x and twist.angular.y cannot be calculated from wheel 
+  // odometry and so the default value (0) can be highly inaccurate (high covariance)
+  position->twist.covariance[21] = 1.0;
+  position->twist.covariance[28] = 1.0;
+  position->twist.covariance[35] = 0.04;    // assuming ~20% error at 1 rad/s
 }
 
 void Ros0xRobotNode::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg)
