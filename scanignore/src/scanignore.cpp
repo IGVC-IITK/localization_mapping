@@ -4,7 +4,6 @@
 #include <limits>
 #include <vector>
 using namespace std;
-#define PI 3.14159265
 const double INF = std::numeric_limits<double>::infinity();
 
 class scanIgnoreNode{

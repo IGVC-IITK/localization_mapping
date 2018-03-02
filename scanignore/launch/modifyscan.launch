@@ -1,11 +1,12 @@
+<?xml version="1.0"?>
 <launch>
   <node name="scanignore_1" pkg="scanignore" type="scanignore" args="-0.9736 1.38257 3.1415">
-  <remap from="/scan" to="/scan_1" />
-   <remap from="/scan_modify" to="/scan_filter_front" />
+  <remap from="/scan" to="/scan_1_unfiltered" />
+   <remap from="/scan_modify" to="/scan_1" />
   </node>
   <node name="scanignore_2" pkg="scanignore" type="scanignore" args="-0.14189 1.68693 3.1415">
-  <remap from="/scan" to="/scan_2" />
-  <remap from="/scan_modify" to="/scan_filter_rear" />
+  <remap from="/scan" to="/scan_2_unfiltered" />
+  <remap from="/scan_modify" to="/scan_2" />
   </node>
 </launch>
  <!-- scanignore subscribes to /scan and publishes in /scan_modify , angles (in rads) (front -0.9736 1.38257), (back -0.14189 1.68693)  -->
