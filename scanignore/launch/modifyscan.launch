@@ -1,6 +1,11 @@
 <launch>
-  <node name="scanignore" pkg="scanignore" type="scanignore" args="-1.5 -0.5 0.5 1.5">
+  <node name="scanignore_1" pkg="scanignore" type="scanignore" args="-0.9736 1.38257 3.1415">
   <remap from="/scan" to="/scan_1" />
+   <remap from="/scan_modify" to="/scan_filter_front" />
+  </node>
+  <node name="scanignore_2" pkg="scanignore" type="scanignore" args="-0.14189 1.68693 3.1415">
+  <remap from="/scan" to="/scan_2" />
+  <remap from="/scan_modify" to="/scan_filter_rear" />
   </node>
 </launch>
- <!-- scanignore subscribes to /scan and publishes in /scan_modify -->
+ <!-- scanignore subscribes to /scan and publishes in /scan_modify  -0.9736 1.38257,-0.14189 1.68693  -->
