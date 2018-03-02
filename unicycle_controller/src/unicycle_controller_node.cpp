@@ -6,78 +6,85 @@
 #include <nav_msgs/Path.h>
 
 // Only for determining path type
-#define DIST_THRESH 0.01
-#define ANGLE_THRESH 0.01
+#define DIST_THRESH 	0.01
+#define ANGLE_THRESH 	0.01
 
-#define ka 1.5	// responsiveness to distance from path 
-#define kb 0.5	// responsiveness to angular deviation
+// Gains (to be tuned)
+#define ka 			2.0	// responsiveness to distance from path 
+#define kb 			1.0	// responsiveness to angular deviation
+#define kb_point 	0.5 // proportional gain for on-point-rotation
 
-#define SPEED_SETPOINT 0.7
-#define YAW_TOLERANCE 0.052
+#define SPEED_SETPOINT 	0.5
 
-#define sampling_rate 10.0
+#define YAW_TOLERANCE 	0.052
+
+#define sampling_rate 	20.0
 
 class UnicycleControl{
 	public:
 		UnicycleControl(){
-		 pub_ = nh_.advertise<geometry_msgs::Twist>("ros0xrobot/cmd_vel", 1);
-		 sub_ = nh_.subscribe("ros0xrobot/odom", 1, 
-		 	&UnicycleControl::odomCallback, this);
+			pub_ = nh_.advertise<geometry_msgs::Twist>("ros0xrobot/cmd_vel", 1);
+			sub_ = nh_.subscribe("odom", 1, 
+				&UnicycleControl::odomCallback, this);
 
-		 // Setting up a fixed path here for testing purpose
-		 path.header.stamp = ros::Time::now();
-		 path.header.frame_id = "odom";
-		 path.poses.resize(10);
-		 path.poses[0].header = path.header;
-		 path.poses[0].pose.position.x = 0.0;
-		 path.poses[0].pose.position.y = 0.0;
-		 path.poses[0].pose.orientation.z = 0.0; // sin(yaw/2)
-		 path.poses[0].pose.orientation.w = 1.0; // cos(yaw/2)
-		 path.poses[1].header = path.header;
-		 path.poses[1].pose.position.x = 4.0;
-		 path.poses[1].pose.position.y = 0.0;
-		 path.poses[1].pose.orientation.z = sin(0*M_PI/360);
-		 path.poses[1].pose.orientation.w = cos(0*M_PI/360);
-		 path.poses[2].header = path.header;
-		 path.poses[2].pose.position.x = 5.0;
-		 path.poses[2].pose.position.y = -1.0;
-		 path.poses[2].pose.orientation.z = sin(-90*M_PI/360);
-		 path.poses[2].pose.orientation.w = cos(-90*M_PI/360);
-		 path.poses[3].header = path.header;
-		 path.poses[3].pose.position.x = 5.0;
-		 path.poses[3].pose.position.y = -5.0;
-		 path.poses[3].pose.orientation.z = sin(-90*M_PI/360);
-		 path.poses[3].pose.orientation.w = cos(-90*M_PI/360);
-		 path.poses[4].header = path.header;
-		 path.poses[4].pose.position.x = 5.0;
-		 path.poses[4].pose.position.y = -5.0;
-		 path.poses[4].pose.orientation.z = sin(-80*M_PI/360);
-		 path.poses[4].pose.orientation.w = cos(-80*M_PI/360);
-		 path.poses[5].header = path.header;
-		 path.poses[5].pose.position.x = 5.4;
-		 path.poses[5].pose.position.y = -10.0;
-		 path.poses[5].pose.orientation.z = sin(-90*M_PI/360);
-		 path.poses[5].pose.orientation.w = cos(-90*M_PI/360);
-		 path.poses[6].header = path.header;
-		 path.poses[6].pose.position.x = 5.4;
-		 path.poses[6].pose.position.y = -20.0;
-		 path.poses[6].pose.orientation.z = sin(-90*M_PI/360);
-		 path.poses[6].pose.orientation.w = cos(-90*M_PI/360);
-		 path.poses[7].header = path.header;
-		 path.poses[7].pose.position.x = 1.6;
-		 path.poses[7].pose.position.y = -23.8;
-		 path.poses[7].pose.orientation.z = sin(-180*M_PI/360);
-		 path.poses[7].pose.orientation.w = cos(-180*M_PI/360);
-		 path.poses[8].header = path.header;
-		 path.poses[8].pose.position.x = -28.4;
-		 path.poses[8].pose.position.y = -23.8;
-		 path.poses[8].pose.orientation.z = sin(-180*M_PI/360);
-		 path.poses[8].pose.orientation.w = cos(-180*M_PI/360);
-		 path.poses[9].header = path.header;
-		 path.poses[9].pose.position.x = -30.4;
-		 path.poses[9].pose.position.y = -21.8;
-		 path.poses[9].pose.orientation.z = sin(90*M_PI/360);
-		 path.poses[9].pose.orientation.w = cos(90*M_PI/360);
+			// Setting up a fixed, rounded square path here for testing purpose
+			path.header.stamp = ros::Time::now();
+			path.header.frame_id = "odom";
+			int num_loops = 3;
+			path.poses.resize(9*num_loops+1);
+			for (int i=0; i<num_loops; i++)
+			{
+				path.poses[9*i+0].header = path.header;
+				path.poses[9*i+0].pose.position.x = 0.0;
+				path.poses[9*i+0].pose.position.y = 0.0;
+				path.poses[9*i+0].pose.orientation.z = 0.0; // sin(yaw/2)
+				path.poses[9*i+0].pose.orientation.w = 1.0; // cos(yaw/2)
+				path.poses[9*i+1].header = path.header;
+				path.poses[9*i+1].pose.position.x = 1.0;
+				path.poses[9*i+1].pose.position.y = 0.0;
+				path.poses[9*i+1].pose.orientation.z = sin(0*M_PI/360);
+				path.poses[9*i+1].pose.orientation.w = cos(0*M_PI/360);
+				path.poses[9*i+2].header = path.header;
+				path.poses[9*i+2].pose.position.x = 2.0;
+				path.poses[9*i+2].pose.position.y = -1.0;
+				path.poses[9*i+2].pose.orientation.z = sin(-90*M_PI/360);
+				path.poses[9*i+2].pose.orientation.w = cos(-90*M_PI/360);
+				path.poses[9*i+3].header = path.header;
+				path.poses[9*i+3].pose.position.x = 2.0;
+				path.poses[9*i+3].pose.position.y = -2.0;
+				path.poses[9*i+3].pose.orientation.z = sin(-90*M_PI/360);
+				path.poses[9*i+3].pose.orientation.w = cos(-90*M_PI/360);
+				path.poses[9*i+4].header = path.header;
+				path.poses[9*i+4].pose.position.x = 1.0;
+				path.poses[9*i+4].pose.position.y = -3.0;
+				path.poses[9*i+4].pose.orientation.z = sin(-180*M_PI/360);
+				path.poses[9*i+4].pose.orientation.w = cos(-180*M_PI/360);
+				path.poses[9*i+5].header = path.header;
+				path.poses[9*i+5].pose.position.x = 0.0;
+				path.poses[9*i+5].pose.position.y = -3.0;
+				path.poses[9*i+5].pose.orientation.z = sin(-180*M_PI/360);
+				path.poses[9*i+5].pose.orientation.w = cos(-180*M_PI/360);
+				path.poses[9*i+6].header = path.header;
+				path.poses[9*i+6].pose.position.x = -1.0;
+				path.poses[9*i+6].pose.position.y = -2.0;
+				path.poses[9*i+6].pose.orientation.z = sin(-270*M_PI/360);
+				path.poses[9*i+6].pose.orientation.w = cos(-270*M_PI/360);
+				path.poses[9*i+7].header = path.header;
+				path.poses[9*i+7].pose.position.x = -1.0;
+				path.poses[9*i+7].pose.position.y = -1.0;
+				path.poses[9*i+7].pose.orientation.z = sin(-270*M_PI/360);
+				path.poses[9*i+7].pose.orientation.w = cos(-270*M_PI/360);
+				path.poses[9*i+8].header = path.header;
+				path.poses[9*i+8].pose.position.x = 0.0;
+				path.poses[9*i+8].pose.position.y = 0.0;
+				path.poses[9*i+8].pose.orientation.z = sin(0*M_PI/360);
+				path.poses[9*i+8].pose.orientation.w = cos(0*M_PI/360);
+			}
+			path.poses[9*num_loops+1].header = path.header;
+			path.poses[9*num_loops+1].pose.position.x = 0.0;
+			path.poses[9*num_loops+1].pose.position.y = 0.0;
+			path.poses[9*num_loops+1].pose.orientation.z = 0.0;
+			path.poses[9*num_loops+1].pose.orientation.w = 1.0;
 		}
 
 		// Reads current state, calls other functions and publishes control
@@ -106,8 +113,8 @@ class UnicycleControl{
 			twist_output.angular.z 	= omega_d;
 			pub_.publish(twist_output);
 
-			ROS_INFO_STREAM("Errors - yaw: " <<yaw_error<<" l: "<<l_error);
-			ROS_INFO_STREAM("Control - speed: "<<speed_d<<" omega: "<<omega_d);
+			ROS_INFO_STREAM_THROTTLE(1.0, "Errors - yaw: " <<yaw_error<<" l: "<<l_error);
+			ROS_INFO_STREAM_THROTTLE(1.0, "Control - speed: "<<speed_d<<" omega: "<<omega_d);
 		}
 
 	private:
@@ -179,11 +186,15 @@ class UnicycleControl{
 							// THE ARC SUBTENDS AN ANGLE < M_PI AT THE CENTER	//
 							//////////////////////////////////////////////////////
 							length_path = distance(x_prev, y_prev, x_next, y_next);
+							// yaw_path corresponds to the bisector of the smaller
+							// angle between the two yaws
 							yaw_path 	= (yaw_prev + yaw_next)/2.0;
+							if (abs(angWrap(yaw_path-yaw_prev)) > M_PI)
+								yaw_path = angWrap(yaw_path - M_PI);
 							speed_path 	= SPEED_SETPOINT;
 							// curvature_path is positive for anti-clockwise turns
 							curvature_path = 
-								2.0*sin((yaw_next-yaw_prev)/2.0)/(length_path);
+								2.0*sin(angWrap(yaw_next-yaw_prev)/2.0)/(length_path);
 							cx_path = x_prev - sin(yaw_prev)/curvature_path;
 							cy_path = y_prev + cos(yaw_prev)/curvature_path;
 						}
@@ -240,7 +251,7 @@ class UnicycleControl{
 				l_error		= 1/curvature_path -
 					sgn(curvature_path)*distance(cx_path, cy_path, x, y);
 				speed_d 	= speed_path;
-				omega_d 	= - ka*v*l_error*sinc(yaw_error) - kb*yaw_error + 
+				omega_d 	= - ka*v*l_error*sinc(yaw_error) - kb*v*yaw_error + 
 					(v*cos(yaw_error))/(1/curvature_path-l_error);
 			}
 			else if (path_type == 'l')
@@ -254,7 +265,7 @@ class UnicycleControl{
 					(x_prev*(y_next-y) + x_next*(y-y_prev) + x*(y_prev-y_next))/
 					(2.0*length_path);	// height = area/base
 				speed_d 	= speed_path;
-				omega_d 	= - ka*v*l_error*sinc(yaw_error) - kb*yaw_error;
+				omega_d 	= - ka*v*l_error*sinc(yaw_error) - kb*v*yaw_error;
 			}
 			else if (path_type == 'p')
 			{
@@ -262,7 +273,7 @@ class UnicycleControl{
 				yaw_error 	= angWrap(yaw-yaw_d);
 				l_error 	= distance(x, y, x_next, y_next);
 				speed_d 	= speed_path;
-				omega_d 	= -kb*yaw_error;
+				omega_d 	= -kb_point*yaw_error;
 			}
 			else // path_type == 'e'
 			{
