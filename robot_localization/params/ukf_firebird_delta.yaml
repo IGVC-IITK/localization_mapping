@@ -1,0 +1,126 @@
+######################################################################################################
+## For sensor-fused odometry on the firebird delta using wheel encoders, visual odometry and an IMU ##
+######################################################################################################
+
+# The choice of parameters has been explained (along with suggested changes for a diffrent use case)
+# Tutorial: http://docs.ros.org/api/robot_localization/html/configuring_robot_localization.html
+
+frequency: 20         # Sensor frequencies are ~10 Hz but we need better frequency for accurate control
+sensor_timeout: 0.05  # Predicting 1 state between every 2 measurements
+two_d_mode: false     # Required 'false' if ramps are to be encountered
+transform_time_offset: 0.0
+transform_timeout: 0.0
+print_diagnostics: true
+debug: false
+debug_out_file: /path/to/debug/file.txt
+odom_frame: odom
+base_link_frame: base_link
+world_frame: odom
+
+# Raw wheel odometry is being used. Note that in this case, the twist covariance is bounded but the pose covariance
+# grows with time. So, x, y, z, roll, pitch, yaw are all ignored. (Also, they are basically duplicate measurements)
+# The firebird delta is a non-holonomic ground robot but the model used by robot_localization is an omnidirectional
+# 3D model. Thus, vy and vz will 'always' be zero and the same must be known by the ukf algorithm to predict states 
+# accurately. On the other hand, vx will be usually non-zero and the value given by odometry.twist will be close to
+# the actual value, wherever the ground is flat. So, vx, vy, vz are all used.
+# vroll, vpitch may be non-zero wherever the ground surface is curved but there is no way to calculate those from 
+# the wheel odometry (odometry.twist gives 0). vyaw will be usually non-zero and the value given by odometry.twist 
+# will be close to the actual value, wherever the ground is flat. So, vroll, vpitch are ignored and vyaw is used.
+# Note that twist (vx, vy, vz, vroll, vpitch, vyaw) is always specified in the robot frame and not the odom frame.
+odom0: ros0xrobot/odom
+odom0_config: [false, false, false,
+               false, false, false,
+               true,  true,  true,
+               false, false, true,
+               false, false, false]
+odom0_queue_size: 2       # Odom is slower than 'frequency', so there is no point in increasing the queue size
+odom0_nodelay: false
+odom0_differential: false # We are already ignoring all absolute measurements from odom
+odom0_relative: false
+
+# Visual odometry from ORB-SLAM2 is being used. It acts as an absolute measurement but it also has some drift
+# that grows with time, which goes back to zero on loop closure. This means that the pose should be used as a 
+# differential measurement in case of large or no loops, but as absolute when quick loop closure is expected.
+pose0: orb_slam2/odom
+pose0_config: [true,  true,  true,
+               true,  true,  true,
+               false, false, false,
+               false, false, false,
+               false, false, false]
+pose0_differential: true
+pose0_relative: false
+pose0_queue_size: 4       # Poses may be received at 60 Hz or lower, so queue size > 60/frequency
+pose0_nodelay: false
+
+# A Pixhawk IMU is being used. Magnetometer yaw is pretty accurate outdoors (std_dev ~ 3 deg) but not indoor.
+# The gyroscope and accelerometer work well indoors but produce some outliers outdoors.
+# The Pixhawk is already generating a sensor-fused orientation using the magnetometer, the gyroscope and the
+# accelerometer readings. So, roll, pitch, yaw are used and vroll, vpitch, vyaw are ignored (duplicate data).
+# The accelerometer does provide some additional information but we already have accurate velocities, so the
+# higher order derivatives (ax, ay, az) can be safely ignored. (robot_localization will assume 0 acceleration
+# when predicting states without any new measurements.)
+imu0: mavros/imu/data
+imu0_config: [false, false, false,
+              true,  true,  true,
+              false, false, false,
+              false, false, false,
+              false, false, false]
+imu0_nodelay: false
+imu0_differential: false
+imu0_relative: false                               # Odometery will be in ENU frame if this is set to true
+imu0_queue_size: 2                                 # Data is already filtered, so frequency is low (~10 Hz)
+imu0_pose_rejection_threshold: 0.8                 # Note the difference in parameter names
+imu0_twist_rejection_threshold: 0.8                #
+imu0_linear_acceleration_rejection_threshold: 0.8  #
+imu0_remove_gravitational_acceleration: true       # The Pixhawk reports az = 9.8 when stationary
+
+# Currently not using the control for state prediction because limits & gains have not been measured.
+# Process noise covariance can be slightly reduced once the control input is also incorporated into the motion model.
+use_control: false
+stamped_control: false
+control_timeout: 0.2
+control_config: [true, false, false, false, false, true]  # Only vx and vyaw are controlled
+acceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 3.4]       # Measured by giving very high control input
+deceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 4.5]       # Measured by immediately stopping the robot
+acceleration_gains: [0.8, 0.0, 0.0, 0.0, 0.0, 0.9]        # Measured using acc=gain*(control-state)
+# deceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0]      # Max deceleration achieved instantaneously
+
+# The better the omnidirectional motion model matches the non-holonomic ground robot's motion in a particular aspect
+# the smaller the corresponding covariance. If a given variable is slow to converge, one approach is to increase the
+# process_noise_covariance diagonal value for the variable in question.
+process_noise_covariance: [0.05, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0.05, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0.06, 0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0.03, 0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0.03, 0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0.12, 0,     0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    1.0,   0,     0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0.025, 0,    0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0.04, 0,    0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0.1,  0,    0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0.1,  0,    0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    4.0,  0,    0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0.01, 0,    0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0.01, 0,
+                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0.015]
+
+initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    1e-9, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    1e-9, 0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    1e-9, 0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    1e-9, 0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    1e-9, 0,    0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    1e-9, 0,    0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    1e-9, 0,    0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    1e-9, 0,     0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    1e-9,  0,     0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     1e-9,  0,     0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     1e-9,  0,    0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-9, 0,    0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-9, 0,
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-9]
+
+# [ADVANCED, UKF ONLY]
+alpha: 0.001
+kappa: 0
+beta: 2
