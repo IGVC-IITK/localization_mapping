@@ -7,7 +7,6 @@ Panels:
         - /Odometry1/Shape1
         - /Odometry2/Covariance1
         - /Odometry2/Covariance1/Position1
-        - /Image1/Status1
       Splitter Ratio: 0.5
     Tree Height: 219
   - Class: rviz/Selection
@@ -97,7 +96,7 @@ Visualization Manager:
         Shaft Length: 1
         Shaft Radius: 0.0500000007
         Value: Arrow
-      Topic: odometry/filtered
+      Topic: /odom
       Unreliable: false
       Value: true
     - Alpha: 0.5

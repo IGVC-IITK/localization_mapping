@@ -540,6 +540,11 @@ template<class T> class RosFilter
     //!
     std::map<std::string, bool> removeGravitationalAcc_;
 
+    //! @brief If the covariances on the IMU topic are wrong, whether or not we replace it with user-specified values
+    //!
+    std::map<std::string, bool> overrideCovariance_;
+    Eigen::MatrixXd imuOrientationCovariance_;
+
     //! @brief What is the acceleration in Z due to gravity (m/s^2)? Default is +9.80665.
     //!
     double gravitationalAcc_;

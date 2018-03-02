@@ -5,6 +5,10 @@
 # The choice of parameters has been explained (along with suggested changes for a diffrent use case)
 # Tutorial: http://docs.ros.org/api/robot_localization/html/configuring_robot_localization.html
 
+# Warning: Increasing the sensor timeout beyond 1/frequency can cause robot_localization to publish
+# duplicate odometry messages (with the SAME TIMESTAMP too), if the sensor frequncy drops below the 
+# frequency of robot_localization. This can cause problems with certain nodes (eg: cartographer).
+
 frequency: 20         # Sensor frequencies are ~10 Hz but we need better frequency for accurate control
 sensor_timeout: 0.05  # Predicting 1 state between every 2 measurements
 two_d_mode: false     # Required 'false' if ramps are to be encountered
@@ -67,12 +71,22 @@ imu0_config: [false, false, false,
               false, false, false]
 imu0_nodelay: false
 imu0_differential: false
-imu0_relative: false                               # Odometery will be in ENU frame if this is set to true
+imu0_relative: true                                # Odometery will be in ENU frame if this is set to false
 imu0_queue_size: 2                                 # Data is already filtered, so frequency is low (~10 Hz)
 imu0_pose_rejection_threshold: 0.8                 # Note the difference in parameter names
 imu0_twist_rejection_threshold: 0.8                #
 imu0_linear_acceleration_rejection_threshold: 0.8  #
 imu0_remove_gravitational_acceleration: true       # The Pixhawk reports az = 9.8 when stationary
+# Some IMU drivers do not specify orientation covariances properly. For instance, mavros does not allow the user to
+# specify separate covariances for yaw, pitch and roll. Use the override_covariance parameter to replace the received 
+# value of orientation covariance with a static user-specified covariance.
+imu0_override_covariance: true
+
+# Currently, only one covariance matrix can be used for overriding the covariance of every IMU.
+# However, only the IMUs for which override_covariance is set to true will be treated this way.
+imu_orientation_covariance:         [0.0001, 0.0,    0.0,
+                                     0.0,    0.0001, 0.0,
+                                     0.0,    0.0,    0.0025]
 
 # Currently not using the control for state prediction because limits & gains have not been measured.
 # Process noise covariance can be slightly reduced once the control input is also incorporated into the motion model.

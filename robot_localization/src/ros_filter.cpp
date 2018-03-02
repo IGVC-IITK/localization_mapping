@@ -42,7 +42,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <limits>
+#include <limits> 
 
 namespace RobotLocalization
 {
@@ -444,8 +444,16 @@ namespace RobotLocalization
         {
           for (size_t j = 0; j < ORIENTATION_SIZE; j++)
           {
-            posPtr->pose.covariance[POSE_SIZE * (i + ORIENTATION_SIZE) + (j + ORIENTATION_SIZE)] =
+            if (overrideCovariance_[topicName])
+            {
+              posPtr->pose.covariance[POSE_SIZE * (i + ORIENTATION_SIZE) + (j + ORIENTATION_SIZE)] =
+                imuOrientationCovariance_(i, j);
+            }
+            else
+            {
+              posPtr->pose.covariance[POSE_SIZE * (i + ORIENTATION_SIZE) + (j + ORIENTATION_SIZE)] =
                 msg->orientation_covariance[ORIENTATION_SIZE * i + j];
+            }
           }
         }
 
@@ -1285,6 +1293,10 @@ namespace RobotLocalization
         nhLocal_.param(imuTopicName + "_remove_gravitational_acceleration", removeGravAcc, false);
         removeGravitationalAcc_[imuTopicName + "_acceleration"] = removeGravAcc;
 
+        bool overrideCov = false;
+        nhLocal_.param(imuTopicName + "_override_covariance", overrideCov, false);
+        overrideCovariance_[imuTopicName] = overrideCov;
+
         // Now pull in its boolean update vector configuration and differential
         // update configuration (as this contains pose information)
         std::vector<int> updateVec = loadUpdateConfig(imuTopicName);
@@ -1390,6 +1402,8 @@ namespace RobotLocalization
                  imuTopicName << "_linear_acceleration_rejection_threshold is " << accelMahalanobisThresh << "\n\t" <<
                  imuTopicName << "_remove_gravitational_acceleration is " <<
                                  (removeGravAcc ? "true" : "false") << "\n\t" <<
+                 imuTopicName << "_override_covariance is " <<
+                                 (overrideCov ? "true" : "false") << "\n\t" <<                
                  imuTopicName << "_queue_size is " << imuQueueSize << "\n\t" <<
                  imuTopicName << " pose update vector is " << poseUpdateVec << "\t"<<
                  imuTopicName << " twist update vector is " << twistUpdateVec << "\t" <<
@@ -1478,6 +1492,57 @@ namespace RobotLocalization
       }
     }
 
+    // Load up the imu orientation covariance (for overriding) (from the launch file/parameter server)
+    imuOrientationCovariance_.resize(ORIENTATION_SIZE, ORIENTATION_SIZE);
+    imuOrientationCovariance_.setZero();
+    XmlRpc::XmlRpcValue imuOrientationCovarConfig;
+
+    if (nhLocal_.hasParam("imu_orientation_covariance"))
+    {
+      try
+      {
+        nhLocal_.getParam("imu_orientation_covariance", imuOrientationCovarConfig);
+
+        ROS_ASSERT(imuOrientationCovarConfig.getType() == XmlRpc::XmlRpcValue::TypeArray);
+
+        int matSize = imuOrientationCovariance_.rows();
+
+        for (int i = 0; i < matSize; i++)
+        {
+          for (int j = 0; j < matSize; j++)
+          {
+            try
+            {
+              // These matrices can cause problems if all the types
+              // aren't specified with decimal points. Handle that
+              // using string streams.
+              std::ostringstream ostr;
+              ostr << imuOrientationCovarConfig[matSize * i + j];
+              std::istringstream istr(ostr.str());
+              istr >> imuOrientationCovariance_(i, j);
+            }
+            catch(XmlRpc::XmlRpcException &e)
+            {
+              throw e;
+            }
+            catch(...)
+            {
+              throw;
+            }
+          }
+        }
+
+        RF_DEBUG("IMU orientation covariance is:\n" << imuOrientationCovariance_ << "\n");
+      }
+      catch (XmlRpc::XmlRpcException &e)
+      {
+        ROS_ERROR_STREAM("ERROR reading sensor config: " <<
+                         e.getMessage() <<
+                         " for imu_orientation_covariance (type: " <<
+                         imuOrientationCovarConfig.getType() << ")");
+      }
+    }
+    
     // Load up the process noise covariance (from the launch file/parameter server)
     Eigen::MatrixXd processNoiseCovariance(STATE_SIZE, STATE_SIZE);
     processNoiseCovariance.setZero();
@@ -1531,7 +1596,7 @@ namespace RobotLocalization
       filter_.setProcessNoiseCovariance(processNoiseCovariance);
     }
 
-    // Load up the process noise covariance (from the launch file/parameter server)
+    // Load up the initial estimate covariance (from the launch file/parameter server)
     Eigen::MatrixXd initialEstimateErrorCovariance(STATE_SIZE, STATE_SIZE);
     initialEstimateErrorCovariance.setZero();
     XmlRpc::XmlRpcValue estimateErrorCovarConfig;

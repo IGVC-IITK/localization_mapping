@@ -6,6 +6,7 @@
 	<include file="$(find mavros)/launch/px4.launch"/>
 	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
 		<rosparam command="load" file="$(find robot_localization)/params/ukf_firebird_delta.yaml"/>
+		<remap from="odometry/filtered" to="odom"/>
 	</node>
 
 	<!-- Collecting Scans for Mapping -->
@@ -15,7 +16,7 @@
 		<param name="frame_id"            type="string" value="laser_front"/>
 		<param name="inverted"            type="bool"   value="false"/>
 		<param name="angle_compensate"    type="bool"   value="true"/>
-		<remap from="/scan" to="/scan_1"/>
+		<remap from="/scan" to="/scan_1_unfiltered"/>
 	</node>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link0_broadcaster" args="0.35 0 0.205 3.14159 0 0 base_link laser_front"/>
 	<node name="rplidarNode2"          pkg="rplidar_ros"  type="rplidarNode" output="screen">
@@ -24,9 +25,11 @@
 		<param name="frame_id"            type="string" value="laser_rear"/>
 		<param name="inverted"            type="bool"   value="false"/>
 		<param name="angle_compensate"    type="bool"   value="true"/>
-		<remap from="/scan" to="/scan_2"/>
+		<remap from="/scan" to="/scan_2_unfiltered"/>
 	</node>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster" args="0.64 0.009 0.043 2.36492 0 0 laser_front laser_rear"/>
+	<include file="$(find scanignore)/launch/modifyscan.launch"/>
+
 
 	<!-- Control (Manual/Automatic) -->
 	<include file="$(find ros0xrobot)/launch/ros0xrobot_teleop.launch"/>
