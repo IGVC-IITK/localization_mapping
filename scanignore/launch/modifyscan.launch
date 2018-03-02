@@ -8,4 +8,4 @@
   <remap from="/scan_modify" to="/scan_filter_rear" />
   </node>
 </launch>
- <!-- scanignore subscribes to /scan and publishes in /scan_modify  -0.9736 1.38257,-0.14189 1.68693  -->
+ <!-- scanignore subscribes to /scan and publishes in /scan_modify , angles (in rads) (front -0.9736 1.38257), (back -0.14189 1.68693)  -->
