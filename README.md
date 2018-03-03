@@ -63,3 +63,5 @@ This node serves as the high-level controller for path following. It follows a n
 ![Unicycle Controller Example](unicycle_controller/unicycle_controller.png)
 
 Built from scratch (Based on C. Canudas de Wit., Nonlinear Control Design for Mobile Robots, in The International Journal of Robotics Research.)
+
+_Status: Yet to tune controller gains but working well otherwise_
