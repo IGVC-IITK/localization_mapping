@@ -3,6 +3,8 @@ Overview of the subsystem:
 
 ![SLAM Overview](SLAM_ROS_Stack.png)
 
+Note : Ellipses correspond to ROS Nodes and Rectangles correspond to the corresponding topics.
+
 ##  Build and Working Status
 |Node|Build Status|Working Status|Credits|Future Work|
 |----|------------|--------------|-------|------|
