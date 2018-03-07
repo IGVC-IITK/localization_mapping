@@ -7,6 +7,7 @@
 	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
 		<rosparam command="load" file="$(find robot_localization)/params/ukf_firebird_delta.yaml"/>
 		<remap from="odometry/filtered" to="odom"/>
+		<remap from="cmd_vel" to="ros0xrobot/cmd_vel"/>
 	</node>
 
 	<!-- Collecting Scans for Mapping -->

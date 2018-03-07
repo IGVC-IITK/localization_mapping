@@ -84,20 +84,21 @@ imu0_override_covariance: true
 
 # Currently, only one covariance matrix can be used for overriding the covariance of every IMU.
 # However, only the IMUs for which override_covariance is set to true will be treated this way.
-imu_orientation_covariance:         [0.0001, 0.0,    0.0,
-                                     0.0,    0.0001, 0.0,
-                                     0.0,    0.0,    0.0025]
+imu_orientation_covariance:  [0.0001, 0.0,    0.0,
+                              0.0,    0.0001, 0.0,
+                              0.0,    0.0,    0.000225]
 
 # Currently not using the control for state prediction because limits & gains have not been measured.
 # Process noise covariance can be slightly reduced once the control input is also incorporated into the motion model.
-use_control: false
+use_control: true
 stamped_control: false
-control_timeout: 0.2
+control_timeout: 0.5
 control_config: [true, false, false, false, false, true]  # Only vx and vyaw are controlled
-acceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 3.4]       # Measured by giving very high control input
-deceleration_limits: [1.3, 0.0, 0.0, 0.0, 0.0, 4.5]       # Measured by immediately stopping the robot
-acceleration_gains: [0.8, 0.0, 0.0, 0.0, 0.0, 0.9]        # Measured using acc=gain*(control-state)
-# deceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0]      # Max deceleration achieved instantaneously
+acceleration_limits: [0.67, 0.0, 0.0, 0.0, 0.0, 2.06]     # Measured by giving very high control input
+deceleration_limits: [0.65, 0.0, 0.0, 0.0, 0.0, 1.90]     # Measured by immediately stopping the robot
+# Measured using acc=gain*(control-state)
+# acceleration_gains: [0.8, 0.0, 0.0, 0.0, 0.0, 0.9]      # Maximum  achieved instantaneously
+# deceleration_gains: [1.0, 0.0, 0.0, 0.0, 0.0, 1.0]      # Maximum  achieved instantaneously
 
 # The better the omnidirectional motion model matches the non-holonomic ground robot's motion in a particular aspect
 # the smaller the corresponding covariance. If a given variable is slow to converge, one approach is to increase the

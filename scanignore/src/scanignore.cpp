@@ -8,8 +8,12 @@ const double INF = std::numeric_limits<double>::infinity();
 
 class scanIgnoreNode{
 public:
+	scanIgnoreNode(){
+			sub_scan = n.subscribe("/scan", 10, &scanIgnoreNode::modifyScan, this);
+			pub_scan = n.advertise<sensor_msgs::LaserScan>("/scan_modify", 10);
+	}
+
 	std::vector<double> ignore_angles;
-	sensor_msgs::LaserScan modified_scan;
 
 	void modifyScan(const sensor_msgs::LaserScanConstPtr& lscan){
 		modified_scan.ranges.resize(lscan->ranges.size());
@@ -19,7 +23,6 @@ public:
 		double end_angle = lscan->angle_max;
 		double angle_count = start_angle;
 		modified_scan.angle_increment = lscan->angle_increment;
-		//double current_angle_to_ignore = ignore_angles[counter];
 		for(unsigned int i =0; i<modified_scan.ranges.size();i++){
 			if(ignore_angles[counter]<angle_count && counter<(ignore_angles.size()-1))
 				counter++;
@@ -47,27 +50,23 @@ public:
 	    modified_scan.range_min = lscan->range_min;
 	    modified_scan.range_max = lscan->range_max;
 	    modified_scan.scan_time = lscan->scan_time;
-	    
+	    pub_scan.publish(modified_scan);
 	}
+private:
+	ros::NodeHandle n;
+	ros::Subscriber sub_scan;
+	ros::Publisher pub_scan;
+	sensor_msgs::LaserScan modified_scan;
 };
-//int test;
+
 int main(int argc,char* argv[])
 {
 	ros::init(argc,argv,"scanignore");
-	ros::NodeHandle n;
 	scanIgnoreNode laser;
 	for(int j=1;j<argc;j++){
 		laser.ignore_angles.push_back(atof(argv[j]));
 	}
-	ros::Subscriber scan_sub = n.subscribe<sensor_msgs::LaserScan>("/scan", 50, &scanIgnoreNode::modifyScan,&laser);
-	ros::Publisher scan_pub = n.advertise<sensor_msgs::LaserScan>("/scan_modify", 50);
-	ros::Rate loop_rate(50);
-	while(n.ok()){
-		//cin>>test;
-		scan_pub.publish(laser.modified_scan);
-		ros::spinOnce();
-		loop_rate.sleep();
-	}
+	ros::spin();
 
 	return 0;
 }
