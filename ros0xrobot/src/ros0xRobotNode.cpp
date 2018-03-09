@@ -186,8 +186,8 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   loopCount = 0;
   // Keeping the frequency higher than 10 Hz causes the velocity readings to
   // get more noisy (probably due to encoder ticks not being registered at a
-  // constant rate), which can cause problems in generating filtered odometry.
-  updateFrequency = 10; 
+  // constant rate), which may cause problems in generating filtered odometry.
+  updateFrequency = 20; 
   velocityX = 0.0;
   velocityY = 0.0;
   velocityTheta = 0.0;
@@ -441,7 +441,7 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   OxRobot->getRightMotorCount(OxRobot->comm_handle, &rightMotorCount);
   leftCount = leftMotorCount;
   rightCount = rightMotorCount;
-
+  
   // find incremental count
   deltaLeftCount = leftCount - leftCountPrev;
   deltaRightCount = rightCount - rightCountPrev;
@@ -496,9 +496,9 @@ void Ros0xRobotNode::setPoseCovariance(nav_msgs::Odometry* position)
 
 void Ros0xRobotNode::setTwistCovariance(nav_msgs::Odometry* position)
 {
-  position->twist.covariance[0] = 0.0025;   // assuming ~5% error at 1 m/s
-  position->twist.covariance[7] = 0.0001;   // non-holonomic vehicle dynamics
-  position->twist.covariance[14] = 0.0001;  // ground robot => vz=0 in vehicle frame
+  position->twist.covariance[0] = 0.0016;   // assuming ~4% error at 1 m/s
+  position->twist.covariance[7] = 0.000004;   // non-holonomic vehicle dynamics
+  position->twist.covariance[14] = 0.000004;  // ground robot => vz=0 in vehicle frame
   // Note that twist.angular.x and twist.angular.y cannot be calculated from wheel 
   // odometry and so the default value (0) can be highly inaccurate (high covariance)
   position->twist.covariance[21] = 1.0;
