@@ -3,6 +3,8 @@
 #include <iostream> 
 #include <limits>
 #include <vector>
+#define PI 3.14159265359
+
 using namespace std;
 const double INF = std::numeric_limits<double>::infinity();
 
@@ -18,34 +20,46 @@ public:
 	void modifyScan(const sensor_msgs::LaserScanConstPtr& lscan){
 		modified_scan.ranges.resize(lscan->ranges.size());
 		modified_scan.intensities.resize(lscan->intensities.size());
-		unsigned counter = 0;
+    int counter = 0;
 		double start_angle = lscan->angle_min;
 		double end_angle = lscan->angle_max;
 		double angle_count = start_angle;
 		modified_scan.angle_increment = lscan->angle_increment;
-		for(unsigned int i =0; i<modified_scan.ranges.size();i++){
-			if(ignore_angles[counter]<angle_count && counter<(ignore_angles.size()-1))
-				counter++;
-			if(counter%2==0){
-				modified_scan.ranges[i]=lscan->ranges[i];
-				if(modified_scan.intensities.size()>1)
-					modified_scan.intensities[i]=lscan->intensities[i];
-			}
-			else{
-				modified_scan.ranges[i] = INF;
-				if(modified_scan.intensities.size()>1)
-					modified_scan.intensities[i]=lscan->intensities[i];
-			}
-			angle_count+=modified_scan.angle_increment;
 
-			if(angle_count>end_angle)
-				break;
+    for(int i = 0; i < modified_scan.ranges.size(); i++){
+      if(counter < ignore_angles.size() && i == (int)(ignore_angles[counter] - lscan->angle_min*180/PI)){
+        counter++;
+      }
+      if(counter%2 == 0){
+        modified_scan.ranges[i] = lscan->ranges[i];
+        modified_scan.intensities[i] = lscan->intensities[i];
+      }
+      else{
+        modified_scan.ranges[i] = INF;
+        modified_scan.intensities[i] = 0;
+      }
+//      if(ignore_angles[counter]<angle_count && counter<(ignore_angles.size()-1))
+//				counter++;
+//			if(counter%2==0){
+//				modified_scan.ranges[i]=lscan->ranges[i];
+//				if(modified_scan.intensities.size()>1)
+//					modified_scan.intensities[i]=lscan->intensities[i];
+//			}
+//			else{
+//				modified_scan.ranges[i] = INF;
+//				if(modified_scan.intensities.size()>1)
+//					modified_scan.intensities[i]=lscan->intensities[i];
+//			}
+//			angle_count+=modified_scan.angle_increment;
+
+//			if(angle_count>end_angle)
+//				break;
 		}
 		
 		modified_scan.header.stamp = lscan->header.stamp;
 	    modified_scan.header.frame_id = lscan->header.frame_id;
-	    modified_scan.angle_min = start_angle;
-	    modified_scan.angle_max = angle_count;
+      modified_scan.angle_min = lscan->angle_min;
+      modified_scan.angle_max = lscan->angle_max;
 	    modified_scan.time_increment = lscan->time_increment;
 	    modified_scan.range_min = lscan->range_min;
 	    modified_scan.range_max = lscan->range_max;

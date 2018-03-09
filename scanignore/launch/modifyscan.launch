@@ -1,10 +1,18 @@
 <?xml version="1.0"?>
 <launch>
-  <node name="scanignore_1" pkg="scanignore" type="scanignore" args="-0.9736 1.38257 3.1415">
+<node name="rplidarNode1" pkg="rplidar_ros" type="rplidarNode" output="screen">
+                <param name="serial_port"         type="string" value="/dev/ttyUSB1"/>
+                <param name="serial_baudrate"     type="int"    value="115200"/>
+                <param name="frame_id"            type="string" value="laser_front"/>
+                <param name="inverted"            type="bool"   value="false"/>
+                <param name="angle_compensate"    type="bool"   value="true"/>
+                <remap from="/scan" to="/scan_1_unfiltered"/>
+        </node>
+  <node name="scanignore_1" pkg="scanignore" type="scanignore" args="-55 79">
   <remap from="/scan" to="/scan_1_unfiltered" />
    <remap from="/scan_modify" to="/scan_1" />
   </node>
-  <node name="scanignore_2" pkg="scanignore" type="scanignore" args="-0.14189 1.68693 3.1415">
+  <node name="scanignore_2" pkg="scanignore" type="scanignore" args="-8 96">
   <remap from="/scan" to="/scan_2_unfiltered" />
   <remap from="/scan_modify" to="/scan_2" />
   </node>
