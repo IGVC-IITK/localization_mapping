@@ -5,31 +5,44 @@
 # The choice of parameters has been explained (along with suggested changes for a diffrent use case)
 # Tutorial: http://docs.ros.org/api/robot_localization/html/configuring_robot_localization.html
 
-# Warning: Increasing the sensor timeout beyond 1/frequency can cause robot_localization to publish
-# duplicate odometry messages (with the SAME TIMESTAMP too), if the sensor frequncy drops below the 
-# frequency of robot_localization. This can cause problems with certain nodes (eg: cartographer).
+# A timing guide for robot_localization:
+# By default, robot_localization runs the prediction step upto a measurement, then a correction step, then a prediction
+# step and so on upto the last measurement. If the last measurement hasn't timed out yet, then it publishes the 
+# estimate upto that correction step (with the measurement's timestamp). Otherwise, it carries out a prediction upto 
+# the current time and publishes that (with the current timestemp). This can cause 2 problems: 
+# 1. Increasing the sensor timeout beyond 1/frequency can cause robot_localization to publish duplicate odometry  
+#   messages (with the SAME TIMESTAMP too), if the sensor frequncy drops below the frequency of robot_localization. 
+#   This can cause problems with certain nodes (eg: cartographer).
+# 2. If we run robot_localization at a frequency higher than the sensors, then it will have to carry out a 
+#   prediction-only cycle between prediction-correction cycles. This means that if the sensors are publishing slightly 
+#   delayed messages, then robot_localization will publish some real-time messages between delayed messages. This can 
+#   lead to erratic (even reversing) timestamps, which can cause problems with certain nodes (eg: cartographer).
+# If we set predict_to_current_time to true, then robot_localization will always predict upto the current time, even 
+# after the last correction step (even if the sensor has not timed out). This means that all the outputs will be 
+# predicted ones (the control input and covariance tuning become crucial now), but the above problems will be solved.
 
 frequency: 20         # Sensor frequencies are ~10 Hz but we need better frequency for accurate control
 sensor_timeout: 0.05  # Predicting 1 state between every 2 measurements
 two_d_mode: false     # Required 'false' if ramps are to be encountered
+predict_to_current_time: true
 transform_time_offset: 0.0
 transform_timeout: 0.0
 print_diagnostics: true
-debug: false
-debug_out_file: /path/to/debug/file.txt
+# debug: false
+# debug_out_file: /path/to/debug/file.txt
 odom_frame: odom
 base_link_frame: base_link
 world_frame: odom
 
 # Raw wheel odometry is being used. Note that in this case, the twist covariance is bounded but the pose covariance
 # grows with time. So, x, y, z, roll, pitch, yaw are all ignored. (Also, they are basically duplicate measurements)
-# The firebird delta is a non-holonomic ground robot but the model used by robot_localization is an omnidirectional
-# 3D model. Thus, vy and vz will 'always' be zero and the same must be known by the ukf algorithm to predict states 
-# accurately. On the other hand, vx will be usually non-zero and the value given by odometry.twist will be close to
-# the actual value, wherever the ground is flat. So, vx, vy, vz are all used.
-# vroll, vpitch may be non-zero wherever the ground surface is curved but there is no way to calculate those from 
-# the wheel odometry (odometry.twist gives 0). vyaw will be usually non-zero and the value given by odometry.twist 
-# will be close to the actual value, wherever the ground is flat. So, vroll, vpitch are ignored and vyaw is used.
+# The firebird delta is a non-holonomic ground robot but the model used by robot_localization is an omnidirectional 3D
+# model. Thus, vy and vz will 'always' be zero and the same must be known by the ukf algorithm to predict states 
+# accurately. On the other hand, vx will be usually non-zero and the value given by odometry.twist will be close to the
+# actual value, wherever the ground is flat. So, vx, vy, vz are all used.
+# vroll, vpitch may be non-zero wherever the ground surface is curved but there is no way to calculate those from the 
+# wheel odometry (odometry.twist gives 0). vyaw will be usually non-zero and the value given by odometry.twist will be 
+# close to the actual value, wherever the ground is flat. So, vroll, vpitch are ignored and vyaw is used.
 # Note that twist (vx, vy, vz, vroll, vpitch, vyaw) is always specified in the robot frame and not the odom frame.
 odom0: ros0xrobot/odom
 odom0_config: [false, false, false,
@@ -42,9 +55,11 @@ odom0_nodelay: false
 odom0_differential: false # We are already ignoring all absolute measurements from odom
 odom0_relative: false
 
-# Visual odometry from ORB-SLAM2 is being used. It acts as an absolute measurement but it also has some drift
-# that grows with time, which goes back to zero on loop closure. This means that the pose should be used as a 
-# differential measurement in case of large or no loops, but as absolute when quick loop closure is expected.
+# Visual odometry from ORB-SLAM2 is being used. It acts as an absolute measurement but it also has some drift that
+# grows with time, which goes back to zero on loop closure. This means that the pose should be used as a  differential 
+# measurement in case of large or no loops, but as absolute when quick loop closure is expected.
+# A better method would be to modify ORB-SLAM2 to give poses with covariance that increases with distance and reduce 
+# the covariance back to the initial value once loop closure is achieved.
 pose0: orb_slam2/odom
 pose0_config: [true,  true,  true,
                true,  true,  true,
@@ -56,13 +71,13 @@ pose0_relative: false
 pose0_queue_size: 4       # Poses may be received at 60 Hz or lower, so queue size > 60/frequency
 pose0_nodelay: false
 
-# A Pixhawk IMU is being used. Magnetometer yaw is pretty accurate outdoors (std_dev ~ 3 deg) but not indoor.
-# The gyroscope and accelerometer work well indoors but produce some outliers outdoors.
-# The Pixhawk is already generating a sensor-fused orientation using the magnetometer, the gyroscope and the
-# accelerometer readings. So, roll, pitch, yaw are used and vroll, vpitch, vyaw are ignored (duplicate data).
-# The accelerometer does provide some additional information but we already have accurate velocities, so the
-# higher order derivatives (ax, ay, az) can be safely ignored. (robot_localization will assume 0 acceleration
-# when predicting states without any new measurements.)
+# A Pixhawk IMU is being used. Magnetometer yaw is pretty accurate outdoors (std_dev ~ 3 deg) but not indoor. The 
+# gyroscope and accelerometer work well indoors but produce some outliers outdoors.
+# The Pixhawk is already generating a sensor-fused orientation using the magnetometer, the gyroscope and the 
+# accelerometer readings. So, roll, pitch, yaw are used and vroll, vpitch, vyaw are ignored (duplicate data). The 
+# accelerometer does provide some additional information but we already have accurate velocities, so the higher order 
+# derivatives (ax, ay, az) can be safely ignored. (robot_localization will assume 0 acceleration when predicting 
+# states without any new measurements, unless control is also used).
 imu0: mavros/imu/data
 imu0_config: [false, false, false,
               true,  true,  true,
@@ -71,7 +86,7 @@ imu0_config: [false, false, false,
               false, false, false]
 imu0_nodelay: false
 imu0_differential: false
-imu0_relative: true                                # Odometery will be in ENU frame if this is set to false
+imu0_relative: true                                # Set this to false if odometery is required in ENU frame
 imu0_queue_size: 2                                 # Data is already filtered, so frequency is low (~10 Hz)
 imu0_pose_rejection_threshold: 0.8                 # Note the difference in parameter names
 imu0_twist_rejection_threshold: 0.8                #
@@ -88,11 +103,15 @@ imu_orientation_covariance:  [0.0001, 0.0,    0.0,
                               0.0,    0.0001, 0.0,
                               0.0,    0.0,    0.000225]
 
-# Currently not using the control for state prediction because limits & gains have not been measured.
-# Process noise covariance can be slightly reduced once the control input is also incorporated into the motion model.
+# Using control helps greatly improve the prediction step of the filter (mainly reduces lag). Process noise covariance 
+# can be slightly reduced if control is used, since the predictions are now more accurate.
 use_control: true
 stamped_control: false
-control_timeout: 0.5
+# control_timeout should be set to the amount of time it would take to achieve cmd_vel. Normally, cmd_vel given by an
+# automatic controller is smooth, so a value of 0.2 should be okay. If we take a much larger value, and there is a 
+# steady state error in the velocity controller, then it can cause robot_localization to predict that the robot will 
+# accelerate/decelerate, even when it is not trying to.
+control_timeout: 0.2
 control_config: [true, false, false, false, false, true]  # Only vx and vyaw are controlled
 acceleration_limits: [0.67, 0.0, 0.0, 0.0, 0.0, 2.06]     # Measured by giving very high control input
 deceleration_limits: [0.65, 0.0, 0.0, 0.0, 0.0, 1.90]     # Measured by immediately stopping the robot
@@ -103,21 +122,41 @@ deceleration_limits: [0.65, 0.0, 0.0, 0.0, 0.0, 1.90]     # Measured by immediat
 # The better the omnidirectional motion model matches the non-holonomic ground robot's motion in a particular aspect
 # the smaller the corresponding covariance. If a given variable is slow to converge, one approach is to increase the
 # process_noise_covariance diagonal value for the variable in question.
-process_noise_covariance: [0.05, 0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0.05, 0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0.06, 0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0.03, 0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0.03, 0,    0,     0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0.12, 0,     0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    1.0,   0,     0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0.025, 0,    0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0.04, 0,    0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0.1,  0,    0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0.1,  0,    0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    4.0,  0,    0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0.01, 0,    0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0.01, 0,
-                           0,    0,    0,    0,    0,    0,    0,     0,     0,    0,    0,    0,    0,    0,    0.015]
+# The rationale behind tuning this particular process noise covariance matrix is as follows:
+# Whenever our predictions are off by (standard deviation) a value v in t seconds, the covariance should grow to v^2 
+# in t seconds. The corresponding value in the matrix should be v^2/t (process covariance defined for unit time step).
+# ax, ay, az: ax can change from 0 to ~0.5 m/s^2 within 0.1s. The control input is converted to acceleration and so 
+# the predicted acceleration (same as prior acceleration) can be off by 0.25 m/s^2 in 0.05s (as frequency = 20Hz). ay 
+# and az are not considered anywhere, so left unchanged.
+# vr, vp, vy: Since ar, ap are not computed, vr and vp are predicted to be same as before. We assume that the robot 
+# may have to roll or pitch by 0.25 radian within a period of 0.5s (due to ditches and ramps). So our prediction can 
+# be off by 0.5 rad/s within the time it is calculated from the difference of 2 IMU readings (0.2s). vy can be off by 
+# 2 rad/s^2 * 0.05s before control is used for prediction i.e., 0.1 rad/s in 0.05s.
+# vx, vy, vz: vx can be off by 0.7 m/s^2 * 0.05s before control is used for prediction i.e., 0.035 m/s in 0.05s. vy 
+# and vz are always exactly zero. Once they converge to zero, we do not want them to change easily, so we set very low 
+# values corresponding to these.
+# r, p, y: vr and vp are used in predicting r and p but they are being calculated from r and p too. Thus, the 
+# prediction from that will be too late and the r and p predictions will stay the same during that interval. By the 
+# time an IMU reading arrives, our estimate (constant) will be off by 0.5 rad/s * 0.1s i.e., 0.05 rad in 0.1s. Based 
+# on the max angular speed and acceleration, the predicted y will be off by 0.1 rad/s * 0.1s due to the speed error 
+# and (1/2) * 2 rad/s^2 * (0.1s)^2 due to the acceleration of the robot i.e., 0.02 rad in 0.1s.
+# x, y, z: These are not corrected, only predicted. So we can calculate the covariance from the observed ~5m drift in 
+# each direction after running the bot for ~500s.
+process_noise_covariance: [0.05, 0,    0,    0,     0,     0,     0,     0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0.05, 0,    0,     0,     0,     0,     0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0.05, 0,     0,     0,     0,     0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0.025, 0,     0,     0,     0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0.025, 0,     0,     0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0.004, 0,     0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0.025, 0,      0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0.0025, 0,      0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0.0025, 0,    0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0,      1.25, 0,    0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0,      0,    1.25, 0,   0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0,      0,    0,    0.2, 0,    0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0,      0,    0,    0,   1.25, 0,    0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0,      0,    0,    0,   0,    0.01, 0,
+                           0,    0,    0,    0,     0,     0,     0,     0,      0,      0,    0,    0,   0,    0, 0.015]
 
 initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
                               0,    1e-9, 0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    0,
@@ -133,7 +172,7 @@ initial_estimate_covariance: [1e-9, 0,    0,    0,    0,    0,    0,    0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     1e-9,  0,    0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     1e-9, 0,    0,
                               0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    1e-9, 0,
-                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,    1e-9]
+                              0,    0,    0,    0,    0,    0,    0,    0,    0,    0,     0,     0,     0,    0,  1e-9]
 
 # [ADVANCED, UKF ONLY]
 alpha: 0.001
