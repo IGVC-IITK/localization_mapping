@@ -47,8 +47,11 @@ protected:
   lib0xRobotCpp* OxRobot;
   std::string serial_port;
 
-  int32 leftCount, rightCount, leftCountPrev, rightCountPrev, deltaLeftCount,
-      deltaRightCount;
+  int32 leftCount, rightCount, leftCountPrev, rightCountPrev, deltaLeftCountFiltered,
+      deltaRightCountFiltered;
+  // Storing the latest 3 encoder count increments for median filtering
+  int32 deltaLeftCount[3] = {};
+  int32 deltaRightCount[3] = {};
   double x, y, deltaX, deltaY, deltaUpdate;
   double theta, deltaTheta, theta_Deg;
   double axelLength;
@@ -69,6 +72,7 @@ protected:
   void setTwistCovariance(nav_msgs::Odometry* position);
   ros::Publisher pose_pub;
   nav_msgs::Odometry position;
+  ros::Time odometryStampNext = ros::Time::now(), odometryStampCurrent = ros::Time::now();
   ros::Publisher sonarPub;
   ros::Publisher irRangeSensorPub;
   ros::Subscriber sub;
@@ -187,6 +191,11 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   // Keeping the frequency higher than 10 Hz causes the velocity readings to
   // get more noisy (probably due to encoder ticks not being registered at a
   // constant rate), which may cause problems in generating filtered odometry.
+  // A median filter has been implemented on the left and right encoder counts
+  // to account for this.
+  // Also, it is impossible to use this node at a frequency higher than 20 Hz,
+  // because the methods getLeftMotorCount and getRightMotorCount themselves
+  // take  around 0.016s (each) to return.
   updateFrequency = 20; 
   velocityX = 0.0;
   velocityY = 0.0;
@@ -205,8 +214,6 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   rightCount = 0;
   leftCountPrev = 0;
   rightCountPrev = 0;
-  deltaLeftCount = 0;
-  deltaRightCount = 0;
 
   theta = 0;
   deltaTheta = 0;
@@ -254,11 +261,14 @@ void Ros0xRobotNode::spin()
   while (ros::ok())
   {
     // get position
+    // current odometery stamp is one iteration behind acquired odometry because of the median filter
+    odometryStampCurrent = odometryStampNext;
     getPosition(&position);
+    odometryStampNext = ros::Time::now();
 
     position.header.frame_id = frame_id_odom;
     position.child_frame_id = frame_id_base_link;
-    position.header.stamp = ros::Time::now();
+    position.header.stamp = odometryStampCurrent;
 
     // publish odometry msg
     pose_pub.publish(position);
@@ -443,11 +453,51 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   rightCount = rightMotorCount;
   
   // find incremental count
-  deltaLeftCount = leftCount - leftCountPrev;
-  deltaRightCount = rightCount - rightCountPrev;
+  deltaLeftCount[loopCount%3]   = leftCount - leftCountPrev;
+  deltaRightCount[loopCount%3]  = rightCount - rightCountPrev;
 
-  OxRobot->getDeltaPosition(OxRobot->comm_handle, deltaLeftCount,
-                            deltaRightCount, theta, distancePerCount,
+  // finding median of 3 incremental counts (left)
+  if (deltaLeftCount[0] < deltaLeftCount[1])
+  {
+    if (deltaLeftCount[2] < deltaLeftCount[0])
+      deltaLeftCountFiltered = deltaLeftCount[0];
+    else if (deltaLeftCount[1] < deltaLeftCount[2])
+      deltaLeftCountFiltered = deltaLeftCount[1];
+    else
+      deltaLeftCountFiltered = deltaLeftCount[2];
+  }
+  else // deltaLeftCount[0] >= deltaLeftCount[1]
+  {
+    if (deltaLeftCount[2] >= deltaLeftCount[0])
+      deltaLeftCountFiltered = deltaLeftCount[0];
+    else if (deltaLeftCount[1] >= deltaLeftCount[2])
+      deltaLeftCountFiltered = deltaLeftCount[1];
+    else
+      deltaLeftCountFiltered = deltaLeftCount[2];
+  }
+
+  // finding median of 3 incremental counts (right)
+  if (deltaRightCount[0] < deltaRightCount[1])
+  {
+    if (deltaRightCount[2] < deltaRightCount[0])
+      deltaRightCountFiltered = deltaRightCount[0];
+    else if (deltaRightCount[1] < deltaRightCount[2])
+      deltaRightCountFiltered = deltaRightCount[1];
+    else
+      deltaRightCountFiltered = deltaRightCount[2];
+  }
+  else // deltaRightCount[0] >= deltaRightCount[1]
+  {
+    if (deltaRightCount[2] >= deltaRightCount[0])
+      deltaRightCountFiltered = deltaRightCount[0];
+    else if (deltaRightCount[1] >= deltaRightCount[2])
+      deltaRightCountFiltered = deltaRightCount[1];
+    else
+      deltaRightCountFiltered = deltaRightCount[2];
+  }
+
+  OxRobot->getDeltaPosition(OxRobot->comm_handle, deltaLeftCountFiltered,
+                            deltaRightCountFiltered, theta, distancePerCount,
                             axelLength, &deltaX, &deltaY, &deltaTheta);
 
   x += deltaX;
@@ -496,14 +546,14 @@ void Ros0xRobotNode::setPoseCovariance(nav_msgs::Odometry* position)
 
 void Ros0xRobotNode::setTwistCovariance(nav_msgs::Odometry* position)
 {
-  position->twist.covariance[0] = 0.0016;   // assuming ~4% error at 1 m/s
+  position->twist.covariance[0] = 0.0025;     // assuming ~5% error at 1 m/s
   position->twist.covariance[7] = 0.000004;   // non-holonomic vehicle dynamics
   position->twist.covariance[14] = 0.000004;  // ground robot => vz=0 in vehicle frame
   // Note that twist.angular.x and twist.angular.y cannot be calculated from wheel 
   // odometry and so the default value (0) can be highly inaccurate (high covariance)
   position->twist.covariance[21] = 1.0;
   position->twist.covariance[28] = 1.0;
-  position->twist.covariance[35] = 0.04;    // assuming ~20% error at 1 rad/s
+  position->twist.covariance[35] = 0.09;    // assuming ~30% error at 1 rad/s
 }
 
 void Ros0xRobotNode::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg)
