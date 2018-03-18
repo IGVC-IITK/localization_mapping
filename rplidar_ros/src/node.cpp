@@ -36,6 +36,7 @@
 #include "sensor_msgs/LaserScan.h"
 #include "std_srvs/Empty.h"
 #include "rplidar.h"
+#include <vector>
 
 #ifndef _countof
 #define _countof(_Array) (int)(sizeof(_Array) / sizeof(_Array[0]))
@@ -51,10 +52,13 @@ void publish_scan(ros::Publisher *pub,
                   rplidar_response_measurement_node_t *nodes,
                   size_t node_count, ros::Time start,
                   double scan_time, bool inverted,
+                  std::vector<double> &ignore_angles_endpoints,
+                  std::vector<bool> &ignore_nodes,
                   float angle_min, float angle_max,
                   std::string frame_id)
 {
     static int scan_count = 0;
+    static float angle_min_prev = 0.0, angle_max_prev = 0.0;
     sensor_msgs::LaserScan scan_msg;
 
     scan_msg.header.stamp = start;
@@ -72,6 +76,25 @@ void publish_scan(ros::Publisher *pub,
     scan_msg.angle_increment =
         (scan_msg.angle_max - scan_msg.angle_min) / (double)(node_count-1);
 
+    // setting up ignore_nodes
+    bool angles_changed = (angle_min != angle_min_prev) || (angle_max != angle_max_prev);
+    if (angles_changed || scan_count == 1)
+    {
+        int endpoint_count = 0;
+        float angle_current = scan_msg.angle_min;
+        ignore_nodes.resize(node_count);
+        for (size_t i = 0; i < node_count; i++, angle_current += scan_msg.angle_increment) {
+            if (endpoint_count < ignore_angles_endpoints.size() && 
+                angle_current - scan_msg.angle_increment <= ignore_angles_endpoints[endpoint_count] && 
+                ignore_angles_endpoints[endpoint_count] <= angle_current) {
+                endpoint_count++;
+            }
+            ignore_nodes[i] = endpoint_count%2; // = true for nodes which have to be ignored
+        }
+    }
+    angle_min_prev = angle_min;
+    angle_max_prev = angle_max;
+
     scan_msg.scan_time = scan_time;
     scan_msg.time_increment = scan_time / (double)(node_count-1);
     scan_msg.range_min = 0.15;
@@ -83,20 +106,30 @@ void publish_scan(ros::Publisher *pub,
     if (!reverse_data) {
         for (size_t i = 0; i < node_count; i++) {
             float read_value = (float) nodes[i].distance_q2/4.0f/1000;
-            if (read_value == 0.0)
+            if (ignore_nodes[i] || read_value == 0.0)
+            {
                 scan_msg.ranges[i] = std::numeric_limits<float>::infinity();
+                scan_msg.intensities[i] = 0.0;
+            }
             else
+            {
                 scan_msg.ranges[i] = read_value;
-            scan_msg.intensities[i] = (float) (nodes[i].sync_quality >> 2);
+                scan_msg.intensities[i] = (float) (nodes[i].sync_quality >> 2);
+            }
         }
     } else {
         for (size_t i = 0; i < node_count; i++) {
             float read_value = (float)nodes[i].distance_q2/4.0f/1000;
-            if (read_value == 0.0)
+            if (ignore_nodes[node_count-1-i] || read_value == 0.0)
+            {
                 scan_msg.ranges[node_count-1-i] = std::numeric_limits<float>::infinity();
+                scan_msg.intensities[node_count-1-i] = 0.0;
+            }
             else
+            {
                 scan_msg.ranges[node_count-1-i] = read_value;
-            scan_msg.intensities[node_count-1-i] = (float) (nodes[i].sync_quality >> 2);
+                scan_msg.intensities[node_count-1-i] = (float) (nodes[i].sync_quality >> 2);
+            }
         }
     }
 
@@ -188,6 +221,8 @@ int main(int argc, char * argv[]) {
     std::string frame_id;
     bool inverted = false;
     bool angle_compensate = true;
+    std::vector<double> ignore_angles_endpoints;
+    std::vector<bool> ignore_nodes;
 
     ros::NodeHandle nh;
     ros::Publisher scan_pub = nh.advertise<sensor_msgs::LaserScan>("scan", 1000);
@@ -197,6 +232,13 @@ int main(int argc, char * argv[]) {
     nh_private.param<std::string>("frame_id", frame_id, "laser_frame");
     nh_private.param<bool>("inverted", inverted, false);
     nh_private.param<bool>("angle_compensate", angle_compensate, true);
+    // data from the 0th angle to the 1st, 2nd to 3rd, 4th to 5th, and so on will be ignored
+    // ignored => (range = inf, intensity = 0.0)
+    // given angles are expected in degrees
+    nh_private.getParam("ignore_angles_endpoints", ignore_angles_endpoints);
+    for (size_t i = 0; i < ignore_angles_endpoints.size(); i++) {
+        ignore_angles_endpoints[i] = DEG2RAD(ignore_angles_endpoints[i]);
+    }
 
     printf("RPLIDAR running on ROS package rplidar_ros\n"
            "SDK Version: "RPLIDAR_SDK_VERSION"\n");
@@ -274,7 +316,7 @@ int main(int argc, char * argv[]) {
                     }
   
                     publish_scan(&scan_pub, angle_compensate_nodes, angle_compensate_nodes_count,
-                             start_scan_time, scan_duration, inverted,
+                             start_scan_time, scan_duration, inverted, ignore_angles_endpoints, ignore_nodes,
                              angle_min, angle_max,
                              frame_id);
                 } else {
@@ -291,7 +333,7 @@ int main(int argc, char * argv[]) {
                     angle_max = DEG2RAD((float)(nodes[end_node].angle_q6_checkbit >> RPLIDAR_RESP_MEASUREMENT_ANGLE_SHIFT)/64.0f);
 
                     publish_scan(&scan_pub, &nodes[start_node], end_node-start_node +1,
-                             start_scan_time, scan_duration, inverted,
+                             start_scan_time, scan_duration, inverted, ignore_angles_endpoints, ignore_nodes,
                              angle_min, angle_max,
                              frame_id);
                }
@@ -301,7 +343,7 @@ int main(int argc, char * argv[]) {
                 float angle_max = DEG2RAD(359.0f);
 
                 publish_scan(&scan_pub, nodes, count,
-                             start_scan_time, scan_duration, inverted,
+                             start_scan_time, scan_duration, inverted, ignore_angles_endpoints, ignore_nodes,
                              angle_min, angle_max,
                              frame_id);
             }
