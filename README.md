@@ -38,9 +38,9 @@ This node gives raw wheel odometry (and also provides a low-level controller) fo
 
 Acquired from NEX Robotics and added some fixes.
 
-## scanignore
+## rplidar_ros
 
-This node generates filtered scans from the laser scan topics by removing range data that corresponds to points on the robot itself (so that the robot does not map itself).
+This node acts as the driver for the range sensors (LiDARs) mounted on the robot. It generates filtered scans from the laser scan topics by removing range data that corresponds to points on the robot itself (so that the robot does not map itself).
 
 Configured for the Firbird 0xDelta (Daksh IITK).
 
