@@ -8,7 +8,7 @@
 		<param name="frame_id"            type="string" value="laser_front"/>
 		<param name="inverted"            type="bool"   value="false"/>
 		<param name="angle_compensate"    type="bool"   value="true"/>
-		<param name="ignore_angles_endpoints"						value="[-55.0, 79.0]"/>
+		<rosparam param="ignore_angles_endpoints">[-55.0, 79.0]</rosparam>
 		<remap from="/scan" to="/scan_1"/>
 	</node>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link0_broadcaster" args="0.35 0 0.205 3.14159 0 0 base_link laser_front"/>
@@ -20,7 +20,7 @@
 		<param name="frame_id"            type="string" value="laser_rear"/>
 		<param name="inverted"            type="bool"   value="false"/>
 		<param name="angle_compensate"    type="bool"   value="true"/>
-		<param name="ignore_angles_endpoints"						value="[-8.0, 96.0]"/>
+		<rosparam param="ignore_angles_endpoints">[-8.0, 96.0]</rosparam>
 		<remap from="/scan" to="/scan_2"/>
 	</node>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster" args="0.64 0.009 0.043 2.36492 0 0 laser_front laser_rear"/>
