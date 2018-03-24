@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<launch>
+	<!-- Initializing LiDAR -->
+	<include file="$(find rplidar_ros)/launch/rplidar.launch">
+	    <arg name="node_name" value="rplidarNode_1"/>
+	    <arg name="serial_port" value="/dev/ttyUSB0"/>
+	    <arg name="frame_id" value="laser_1"/>
+	    <arg name="topic" value="/scan_1"/>
+	</include>
+	<include file="$(find rplidar_ros)/launch/rplidar.launch">
+	    <arg name="node_name" value="rplidarNode_2"/>
+	    <arg name="serial_port" value="/dev/ttyUSB1"/>
+	    <arg name="frame_id" value="laser_2"/>
+	    <arg name="topic" value="/scan_2"/>
+	</include>
+
+	<!-- Broadcasting static transforms. Camera transforms have been re-published to avoid cycles in the tf-tree. Note that ORB_SLAM2 publishes camera_pose as the pose of the left camera, but the mapping X to Z, Y to -X & Z to -Y -->
+
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link2_broadcaster" args="0 -0.6 0 0 0 0 1 zed_left_camera_os2 zed_center_os2" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link3_broadcaster" args="0 -0.6 0 0 0 0 1 zed_center_os2 zed_right_camera_os2" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link4_broadcaster" args="0 0 0 0 0 0 1 zed_left_camera_os2 zed_depth_camera_os2" />
+
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 -0.5 0.5 -0.5 0.5 map init_link" />
+	<!-- init_link to camera_pose given by ORB_SLAM2 -->
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link5_broadcaster" args="0 0 0 0.5 -0.5 0.5 0.5 camera_pose zed_left_camera_os2" />
+	
+
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link6_broadcaster" args="0.08 0 -0.535 0 0 1 0  zed_center_os2 laser_1" />
+
+	<node pkg="tf2_ros" type="static_transform_publisher" name="link7_broadcaster" args="-0.785 0 -0.535 0 0 0 1  zed_center_os2 laser_2" />
+	
+	<node pkg="lidar_mapping" type="lidar_mapping_node" name="lidar_mapping_node" />
+
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find lidar_mapping)/rviz/lidar_mapping.rviz" />
+</launch>
