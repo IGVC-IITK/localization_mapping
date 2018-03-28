@@ -32,6 +32,10 @@ This node gives sensor-fused odometry. (Currently using wheel encoders, visual o
 
 It is an open-source ROS package. Added an extra feature. Measured, calculated and tuned covariance matrices based on the robot dynamics, sensor configuration and the environment conditions.
 
+## img_to_pcloud
+
+The node gives a point cloud from a binary classified image using its top-left corner as a reference point.
+
 ## ros0xrobot
 
 This node gives raw wheel odometry (and also provides a low-level controller) for the Firebird 0xDelta robot. This node is basically a driver for the robot's motors and encoders.
