@@ -66,6 +66,8 @@ protected:
 
   uint32 loopCount;
   uint8 updateFrequency;
+  ros::Time prevCountTime;
+  ros::Duration countDuration;
   double velocityX, velocityY, velocityTheta;
   void getPosition(nav_msgs::Odometry* position);
   void setPoseCovariance(nav_msgs::Odometry* position);
@@ -256,6 +258,8 @@ void Ros0xRobotNode::spin()
   float sonarSensorDataY[8];
   float irRangeSensorDataX[8];
   float irRangeSensorDataY[8];
+  prevCountTime = ros::Time::now();
+  countDuration = ros::Duration(1.0/((double)updateFrequency));
   ros::Rate loop_rate(updateFrequency);
 
   while (ros::ok())
@@ -449,6 +453,8 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   // get left and right motor count
   OxRobot->getLeftMotorCount(OxRobot->comm_handle, &leftMotorCount);
   OxRobot->getRightMotorCount(OxRobot->comm_handle, &rightMotorCount);
+  countDuration = ros::Time::now() - prevCountTime;
+  prevCountTime = ros::Time::now();
   leftCount = leftMotorCount;
   rightCount = rightMotorCount;
   
@@ -510,12 +516,21 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   position->pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
   setPoseCovariance(position);
 
-  velocityX = OxRobot->getVelocityX(
-      OxRobot->comm_handle, deltaX, updateFrequency);
-  velocityY = OxRobot->getVelocityY(
-      OxRobot->comm_handle, deltaY, updateFrequency);
-  velocityTheta = OxRobot->getVelocityTheta(
-      OxRobot->comm_handle, deltaTheta, updateFrequency);
+  velocityX = deltaX/countDuration.toSec();
+  velocityY = deltaY/countDuration.toSec();
+  velocityTheta = deltaTheta/countDuration.toSec();
+  // Not using original code for twist calculation. Velocities need to be
+  // calculated using actual loop rate, not desired loop rate. The earlier
+  // code caused problems when the node was trying to run at 20Hz but the
+  // functions being called in cmdVelCallback (together with
+  // getLeftMotorCount, getRightMotorCount) took so long to return that the
+  // node could no longer run at that rate.
+  // velocityX = OxRobot->getVelocityX(
+  //     OxRobot->comm_handle, deltaX, updateFrequency);
+  // velocityY = OxRobot->getVelocityY(
+  //     OxRobot->comm_handle, deltaY, updateFrequency);
+  // velocityTheta = OxRobot->getVelocityTheta(
+  //     OxRobot->comm_handle, deltaTheta, updateFrequency);
 
   position->twist.twist.linear.x = 
       velocityX*cos(theta) + velocityY*sin(theta);
@@ -559,7 +574,7 @@ void Ros0xRobotNode::setTwistCovariance(nav_msgs::Odometry* position)
 void Ros0xRobotNode::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg)
 {
   float velocityRight, velocityLeft, radiusOfCurv;
-  ROS_INFO("%f, %f", msg->linear.x, msg->angular.z);
+  ROS_INFO_THROTTLE(1.0, "%f, %f", msg->linear.x, msg->angular.z);
 
   OxRobot->setVelocity2D(OxRobot->comm_handle, msg->linear.x, msg->angular.z,
                          axelLength / 1000.0);
