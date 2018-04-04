@@ -516,8 +516,8 @@ void Ros0xRobotNode::getPosition(nav_msgs::Odometry* position)
   position->pose.pose.orientation = tf::createQuaternionMsgFromYaw(theta);
   setPoseCovariance(position);
 
-  velocityX = deltaX/countDuration.toSec();
-  velocityY = deltaY/countDuration.toSec();
+  velocityX = (deltaX/1000.0)/countDuration.toSec();
+  velocityY = (deltaY/1000.0)/countDuration.toSec();
   velocityTheta = deltaTheta/countDuration.toSec();
   // Not using original code for twist calculation. Velocities need to be
   // calculated using actual loop rate, not desired loop rate. The earlier
