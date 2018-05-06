@@ -11,7 +11,7 @@
 		<rosparam param="ignore_angles_endpoints">[-55.0, 79.0]</rosparam>
 		<remap from="/scan" to="/scan_1"/>
 	</node>
-	<node pkg="tf2_ros" type="static_transform_publisher" name="link0_broadcaster" args="0.35 0 0.205 3.14159 0 0 base_link laser_front"/>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="bl_to_lf_broadcaster" args="0.35 0 0.205 3.14159 0 0 base_link laser_front"/>
 
 	<!-- Rear LiDAR -->
 	<node name="rplidarNodeRear" pkg="rplidar_ros"  type="rplidarNode" output="screen">
@@ -23,6 +23,6 @@
 		<rosparam param="ignore_angles_endpoints">[-8.0, 96.0]</rosparam>
 		<remap from="/scan" to="/scan_2"/>
 	</node>
-	<node pkg="tf2_ros" type="static_transform_publisher" name="link1_broadcaster" args="0.64 0.009 0.043 2.36492 0 0 laser_front laser_rear"/>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="lf_to_lr_broadcaster" args="0.64 0.009 0.043 2.36492 0 0 laser_front laser_rear"/>
 
 </launch>
