@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+
+	<!-- Starting main robot_localization node -->
+	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
+		<rosparam command="load" file="$(find robot_localization)/params/firebird_delta_ukf.yaml"/>
+		<remap from="cmd_vel" to="ros0xrobot/cmd_vel"/>
+	</node>
+
+	<!-- Starting robot_localization nodes for GPS filtered odometry -->
+	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se_gps" clear_params="true">
+		<rosparam command="load" file="$(find robot_localization)/params/firebird_delta_ukf_gps.yaml"/>
+		<remap from="odometry/filtered" to="odometry/filtered_gps"/>
+	</node>
+	<node pkg="robot_localization" type="navsat_transform_node" name="navsat_transform_node" clear_params="true">
+		<rosparam command="load" file="$(find robot_localization)/params/firebird_delta_navsat_transform.yaml" />
+		<remap from="odometry/filtered" to="odometry/filtered_gps"/>
+		<remap from="gps/fix" to="mavros/global_position/raw/fix"/>
+	</node>	
+
+</launch>

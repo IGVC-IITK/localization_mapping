@@ -1,23 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-
-	<!-- Localization -->
-	<include file="$(find ros0xrobot)/launch/ros0xrobot_minimal.launch"/>
-	<include file="$(find mavros)/launch/px4.launch"/>
-	<node pkg="robot_localization" type="ukf_localization_node" name="ukf_se" clear_params="true">
-		<rosparam command="load" file="$(find robot_localization)/params/ukf_firebird_delta.yaml"/>
-		<remap from="odometry/filtered" to="odom"/>
-		<remap from="cmd_vel" to="ros0xrobot/cmd_vel"/>
-	</node>
-
-	<!-- Collecting Scans for Mapping -->
-	<include file="$(find rplidar_ros)/launch/firebird_delta_rplidar.launch"/>
-
-	<!-- Control (Manual/Automatic) -->
-	<include file="$(find ros0xrobot)/launch/ros0xrobot_teleop.launch"/>
-	<!-- <node name="unicycle_controller_node" pkg="unicycle_controller" type ="unicycle_controller_node"/> -->
-
-	<!-- Visualization -->
-	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find robot_localization)/rviz/sensor_fusion.rviz" output="screen"/>
+	
+	<!-- This bash script calls the required nodes with appropriate delays -->
+	<node name="sensor_fusion" pkg="robot_localization" type="sensor_fusion.sh" output="screen"/>
 
 </launch>

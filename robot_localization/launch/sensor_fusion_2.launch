@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<launch>
+
+	<!-- Starting ros0xrobot after robot_localization ensures that the initial imu pose does not get rejected -->
+	<include file="$(find ros0xrobot)/launch/ros0xrobot_minimal.launch"/>
+	<!-- <node pkg="fake_odom" type="fake_odom_node" name="ros0xrobotNode_fake" clear_params="true"/> -->
+
+	<!-- Collecting Scans for Mapping -->
+	<include file="$(find rplidar_ros)/launch/firebird_delta_rplidar.launch"/>
+
+	<!-- Mapping Node -->
+	<node name="lidar_mapping_node" pkg="lidar_mapping" type ="lidar_mapping_node"/>
+
+	<!-- Control (Manual/Automatic) -->
+	<!-- <include file="$(find ros0xrobot)/launch/ros0xrobot_teleop.launch"/> -->
+	<rosparam param="utm">[423704.22 , 2932307.74 , 423703.28 , 2932319.38 , 423693.82 , 2932319.98 , 423694.81 , 2932283.41 , 423703.96 , 2932294.55 , 423704.22 , 2932307.74, 423704.22 , 2932307.74]</rosparam>
+	<node name="waypoint_to_path_node" pkg="waypoint_to_path" type ="waypoint_to_path_node">
+		<remap from="odom" to="odometry/filtered"/>
+	</node>
+	<node name="unicycle_controller_node" pkg="unicycle_controller" type ="unicycle_controller_node">
+		<remap from="cmd_vel" to="ros0xrobot/cmd_vel"/>
+		<remap from="odom" to="odometry/filtered"/>
+		<remap from="path" to="path/smooth"/>
+	</node>
+
+	<!-- Visualization -->
+	<node name="rviz" pkg="rviz" type="rviz" args="-d $(find robot_localization)/rviz/sensor_fusion.rviz" output="screen"/>
+	
+</launch>

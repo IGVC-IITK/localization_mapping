@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+
+	<!-- Starting Pixhawk. It takes ~25s for GPS and IMU to function properly. -->
+	<include file="$(find mavros)/launch/px4.launch"/>
+
+</launch>

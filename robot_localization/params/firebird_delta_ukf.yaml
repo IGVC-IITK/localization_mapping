@@ -30,6 +30,7 @@ transform_timeout: 0.0
 print_diagnostics: true
 # debug: false
 # debug_out_file: /path/to/debug/file.txt
+map_frame: map
 odom_frame: odom
 base_link_frame: base_link
 world_frame: odom
@@ -51,9 +52,9 @@ odom0_config: [false, false, false,
                false, false, true,
                false, false, false]
 odom0_queue_size: 2       # Odom is slower than 'frequency', so there is no point in increasing the queue size
-odom0_nodelay: false
+odom0_nodelay: true
 odom0_differential: false # We are already ignoring all absolute measurements from odom
-odom0_relative: false
+odom0_relative: true
 
 # Visual odometry from ORB-SLAM2 is being used. It acts as an absolute measurement but it also has some drift that
 # grows with time, which goes back to zero on loop closure. This means that the pose should be used as a  differential 
@@ -67,9 +68,9 @@ pose0_config: [true,  true,  true,
                false, false, false,
                false, false, false]
 pose0_differential: true
-pose0_relative: false
+pose0_relative: true
 pose0_queue_size: 4       # Poses may be received at 60 Hz or lower, so queue size > 60/frequency
-pose0_nodelay: false
+pose0_nodelay: true
 
 # A Pixhawk IMU is being used. Magnetometer yaw is pretty accurate outdoors (std_dev ~ 3 deg) but not indoor. The 
 # gyroscope and accelerometer work well indoors but produce some outliers outdoors.
@@ -84,9 +85,9 @@ imu0_config: [false, false, false,
               false, false, false,
               false, false, false,
               false, false, false]
-imu0_nodelay: false
+imu0_nodelay: true
 imu0_differential: false
-imu0_relative: true                                # Set this to false if odometery is required in ENU frame
+imu0_relative: false                               # Set this to false if odometery is required in ENU frame
 imu0_queue_size: 2                                 # Data is already filtered, so frequency is low (~10 Hz)
 imu0_pose_rejection_threshold: 0.8                 # Note the difference in parameter names
 imu0_twist_rejection_threshold: 0.8                #

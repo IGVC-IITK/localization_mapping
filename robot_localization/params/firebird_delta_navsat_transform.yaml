@@ -1,0 +1,9 @@
+frequency: 20
+delay: 3.0
+zero_altitude: true
+broadcast_utm_transform: true
+broadcast_utm_transform_as_parent_frame: true
+publish_filtered_gps: false
+use_odometry_yaw: true
+wait_for_datum: false
+
