@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 	tf2_ros::Buffer tfBuffer;
 	tf2_ros::TransformListener tfListener(tfBuffer);
 
-	ros::Subscriber sub_scan_1 = n.subscribe("/scan", 1, scanToMap);
+	ros::Subscriber sub_scan_1 = n.subscribe("/scan_1", 1, scanToMap);
 	// ros::Subscriber sub_scan_2 = n.subscribe("/scan_2", 1, scanToMap);
 
 	ros::Publisher pub_map = n.advertise<nav_msgs::OccupancyGrid>("/lidar_map", 1);
