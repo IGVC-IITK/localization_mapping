@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <stdlib.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include "cv_bridge/cv_bridge.h"
 #include "image_transport/image_transport.h"
@@ -88,8 +89,8 @@ public:
 	}
 
 	void imageCallback(const sensor_msgs::ImageConstPtr& img_msg){
-		cam_to_map = this->tfBuffer.lookupTransform("odom", img_msg->header.frame_id, ros::Time(0));
-		geometry_msgs::PointStamped point_cam, point_robot;
+		//cam_to_map = this->tfBuffer.lookupTransform("odom", img_msg->header.frame_id, ros::Time(0));
+		//geometry_msgs::PointStamped point_cam, point_robot;
 		int x,y,up_flag=0;
 		bool right_flag = false,left_flag = false;
 		cv::Mat gs1(cv_bridge::toCvShare(img_msg, "bgr8")->image.rows,
@@ -97,7 +98,7 @@ public:
       	gs1 = cv_bridge::toCvShare(img_msg, "bgr8")->image;
       	cv::Mat gs;
       	cv::cvtColor(gs1,gs, cv::COLOR_BGR2GRAY);
-      	for(int j=gs.rows-1;j>=0;j--){
+      	/*for(int j=gs.rows-1;j>=0;j--){
       		if((bool)gs.at<uchar>(j,gs.cols/2) && j!=gs.rows-1){
       			if(!(bool)gs.at<uchar>(j+1,gs.cols/2)){
       				for(int k=0;k<gs.cols/2;k++){
@@ -162,6 +163,20 @@ public:
       			}
       		}
       		right_flag = false; left_flag = false;
+      	}*/
+      	ROS_INFO("moving to image loop");
+      	for(int i=0;i<gs.cols/(image_scale*cellResolution) && i<real_map_width;i+=image_scale*cellResolution){
+      		for(int j=std::min((int)((gs.rows-1)/(image_scale*cellResolution)),real_map_height);j>0;j-=image_scale*cellResolution){
+      			x = mapOriginToImageX+ i/(image_scale*cellResolution);
+      			y = mapOriginToImageY+ (gs.rows-1-j)/(image_scale*cellResolution);
+      			if(x<real_map_width && y<real_map_height)
+      			if((bool)gs.at<uchar>(j,i)){
+      				real_map.data[y*real_map_width+x]=100;
+      			}
+      			else if(real_map.data[y*real_map_width+x]==-1){
+      				real_map.data[y*real_map_width+x]=0;
+      			}
+      		}
       	}
 
 	}
@@ -187,6 +202,7 @@ int main(int argc, char** argv)
   		sub_and_pub.publishMap();
   	}
   	ros::spinOnce();
+  	loop_rate.sleep();
   	loop_count++;
   }
   return 0;
