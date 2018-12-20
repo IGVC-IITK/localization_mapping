@@ -11,11 +11,11 @@
 #include <sensor_msgs/LaserScan.h>
 #include <nav_msgs/Odometry.h>
 
-#define cellResolution 0.05 //(meters/cell)
-#define real_map_width (int)(400.0/cellResolution)
-#define real_map_height (int)(400.0/cellResolution)
-float map_origin_position[3] = {-200.0,-200.0,0.0};
-#define image_scale 160 //(pixels/meter)
+#define cellResolution 0.5 //(meters/cell)
+#define real_map_width 4000
+#define real_map_height 4000
+float map_origin_position[3] = {0,0,0};
+#define image_scale 5 //(pixels/meter)
 #define mapOriginToImageX 100 //cell no. of pixel
 #define mapOriginToImageY 100 // at (x,y)===(columns/2,rows)
 
@@ -88,24 +88,27 @@ public:
      }
   }
 
-  void imageCallback(const sensor_msgs::ImageConstPtr& img_msg){
+  void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     //cam_to_map = this->tfBuffer.lookupTransform("odom", img_msg->header.frame_id, ros::Time(0));
     //geometry_msgs::PointStamped point_cam, point_robot;
     int x,y,up_flag=0;
     bool right_flag = false,left_flag = false;
-    cv::Mat gs = cv_bridge::toCvShare(img_msg, "8UC1")->image;
-    // --------------------------------------------------------------
-    // Here we have the image gs.at<int>(j,i) 
-    // Rows are 720 and cols are 1280
-    ROS_INFO("THIS - %d,%d",gs.rows,gs.cols);
-    
-
+    cv::Mat gs = cv_bridge::toCvShare(msg, "8UC1")->image;
+        ROS_INFO("moving to image loop %d,%d",gs.rows,gs.cols);
+         for(int i=0;i<gs.rows;i++)
+         {
+          for(int j=0;j<gs.cols;j++)
+          {
+            if (gs.at<int>(i,j) == 0)
+            real_map.data[i*real_map_width + j] = 0;
+            else
+            real_map.data[i*real_map_width + j] = 100;
+          }
+         }
   }
 
   void publishMap(){
-    ROS_INFO("here before");
     pub_.publish(real_map);
-    ROS_INFO("here after 2222");
   }
 
 
