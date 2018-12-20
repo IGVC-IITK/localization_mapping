@@ -12,10 +12,10 @@
 #include <nav_msgs/Odometry.h>
 
 #define cellResolution 0.5 //(meters/cell)
-#define real_map_width 4000
-#define real_map_height 4000
-float map_origin_position[3] = {0,0,0};
-#define image_scale 5 //(pixels/meter)
+#define real_map_width 200
+#define real_map_height 200
+float map_origin_position[3] = {-200,-200,0};
+#define image_scale 1	 //(pixels/meter)
 #define mapOriginToImageX 100 //cell no. of pixel
 #define mapOriginToImageY 100 // at (x,y)===(columns/2,rows)
 
@@ -91,20 +91,30 @@ public:
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
     //cam_to_map = this->tfBuffer.lookupTransform("odom", img_msg->header.frame_id, ros::Time(0));
     //geometry_msgs::PointStamped point_cam, point_robot;
-    //int x,y;
+    int x,y;
     //bool right_flag = false,left_flag = false;
     cv::Mat gs = cv_bridge::toCvShare(msg, "8UC1")->image;
         ROS_INFO("moving to image loop %d,%d",gs.rows,gs.cols);
-         for(int i=0;i<gs.rows;i++)
+        for(int i=0;i<gs.rows;i++)
          {
           for(int j=0;j<gs.cols;j++)
           {
-            if (gs.at<int>(i,j) == 0)
-            real_map.data[(int)((gs.rows-1-i)/(image_scale*cellResolution))*real_map_width + (int)(j/(image_scale*cellResolution))] = 0;
-            else
-            real_map.data[(int)((gs.rows-1-i)/(image_scale*cellResolution))*real_map_width + (int)(j/(image_scale*cellResolution))] = 100;
-          }
-         }
+          	y = j/image_scale*cellResolution;
+        	x = (gs.rows-1-i)/image_scale*cellResolution;
+        	if ((0 < y*real_map_width + x) && (y*real_map_width + x < real_map_width*real_map_height)){
+           	// if ((bool)gs.at<uchar>(j, i) && (x != i && y != j)){
+   	            if (gs.at<int>(i,j) == 0)
+	            	real_map.data[real_map_height*y + x] = 0;
+	            else
+	            	real_map.data[real_map_height*y + x] = 100;
+           	}
+          	//if(j/(image_scale*cellResolution)<real_map_width && ((gs.rows-1-i)/(image_scale*cellResolution))<real_map_height)
+	         //    if (gs.at<uchar>(i,j) == 0)
+	         //    	real_map.data[real_map_height*(int)(j/(image_scale*cellResolution)) + (int)((gs.rows-1-i)/(image_scale*cellResolution))] = 0;
+	         //    else
+	         //    	real_map.data[real_map_height*(int)(j/(image_scale*cellResolution)) + (int)((gs.rows-1-i)/(image_scale*cellResolution))] = 100;
+            }
+        }
   }
 
   void publishMap(){
