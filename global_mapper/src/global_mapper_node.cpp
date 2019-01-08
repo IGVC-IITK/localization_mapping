@@ -52,7 +52,7 @@ public:
 
   void scanCallback(const sensor_msgs::LaserScanConstPtr& scan_msg){
     ROS_INFO("Subscribing to scanCallback");
-    lidar_to_map = this->tfBuffer.lookupTransform("odom", "laser_front", ros::Time(0));
+    lidar_to_map = this->tfBuffer.lookupTransform("odom", "laser_1", ros::Time(0));
     geometry_msgs::PointStamped point_lidar, point_robot;
     int x,y;
     ROS_INFO("moving to outer loop");
@@ -89,8 +89,8 @@ public:
   }
 
   void imageCallback(const sensor_msgs::ImageConstPtr& msg){
-    cam_to_map = this->tfBuffer.lookupTransform("odom", msg->header.frame_id, ros::Time(0));
-    geometry_msgs::PointStamped point_cam, point_robot;
+    //cam_to_map = this->tfBuffer.lookupTransform("odom", msg->header.frame_id, ros::Time(0));
+    //geometry_msgs::PointStamped point_cam, point_robot;
     int x,y;
     //bool right_flag = false,left_flag = false;
     cv::Mat gs = cv_bridge::toCvShare(msg, "8UC1")->image;
@@ -99,12 +99,14 @@ public:
       {
       for(int j=0;j<gs.cols;j++)
       {
-        point_cam.point.x = (gs.rows-1-i)/image_scale*cellResolution;
-        point_cam.point.y = j/image_scale*cellResolution;
-        point_cam.point.z = 0.0;
-        tf2::doTransform(point_cam, point_robot, cam_to_map);
-        x = (int)((point_robot.point.x - map_origin_position[0])/cellResolution);
-        y = (int)((point_robot.point.y - map_origin_position[1])/cellResolution);
+        // point_cam.point.x = (gs.rows-1-i)/image_scale*cellResolution;
+        // point_cam.point.y = j/image_scale*cellResolution;
+        // point_cam.point.z = 0.0;
+        // tf2::doTransform(point_cam, point_robot, cam_to_map);
+        // x = (int)((point_robot.point.x - map_origin_position[0])/cellResolution);
+        // y = (int)((point_robot.point.y - map_origin_position[1])/cellResolution);
+        x=(gs.rows-1-i)/image_scale*cellResolution;
+        y=j/image_scale*cellResolution;
         if ((0 < y*real_map_width + x) && (y*real_map_width + x < real_map_width*real_map_height)){
         // if ((bool)gs.at<uchar>(j, i) && (x != i && y != j)){
           if (gs.at<int>(i,j) == 0)

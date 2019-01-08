@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <launch>
 	<!-- Initializing LiDAR -->
-	<!--<include file="$(find rplidar_ros)/launch/rplidar.launch">
+	<include file="$(find rplidar_ros)/launch/rplidar.launch">
 	    <arg name="node_name" value="rplidarNode_1"/>
 	    <arg name="serial_port" value="/dev/ttyUSB0"/>
 	    <arg name="frame_id" value="laser_1"/>
 	    <arg name="topic" value="/scan_1"/>
 	</include>
-	<include file="$(find rplidar_ros)/launch/rplidar.launch">
+	<!--<include file="$(find rplidar_ros)/launch/rplidar.launch">
 	    <arg name="node_name" value="rplidarNode_2"/>
 	    <arg name="serial_port" value="/dev/ttyUSB1"/>
 	    <arg name="frame_id" value="laser_2"/>
