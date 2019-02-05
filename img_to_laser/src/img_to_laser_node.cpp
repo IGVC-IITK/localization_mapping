@@ -8,7 +8,7 @@
 #define PI 3.1415926535897
 #define INCREMENT 0.01745329251
 #define NUM_READINGS 360
-#define SCALING_FACTOR 100
+#define SCALING_FACTOR 100 // cells/m (find experimentally)
 
 class img_to_laser
 {
