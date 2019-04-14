@@ -29,12 +29,12 @@ private:
 
   //getting parameters
   double cellResolution = 0.05, image_scale = 160.0;
-  int real_map_width_m = 200, real_map_height_m = 200;
+  double real_map_width_m = 200.0, real_map_height_m = 200.0;
 
   //calculating required parameters
   int real_map_width = (int)(real_map_width_m/cellResolution);
   int real_map_height = (int)(real_map_height_m/cellResolution);
-  double map_origin_position[3] = {-real_map_width_m/2,-real_map_height_m/2,0};
+  double map_origin_position[3] = {-real_map_width_m/2.0, -real_map_height_m/2.0, 0};
 
 public:
   tf2_ros::Buffer tfBuffer;
@@ -42,11 +42,9 @@ public:
   real_mapper(){
   
   	nh_.param("cellResolution", cellResolution, 0.05);
-  	nh_.param("real_map_width_m", real_map_width_m, 200);
-  	nh_.param("real_map_height_m", real_map_height_m, 200);
+  	nh_.param("real_map_width_m", real_map_width_m, 200.0);
+  	nh_.param("real_map_height_m", real_map_height_m, 200.0);
   	nh_.param("image_scale", image_scale, 160.0);
-
-	
 
   real_map.header.frame_id = "odom";
     real_map.header.stamp = ros::Time::now();
