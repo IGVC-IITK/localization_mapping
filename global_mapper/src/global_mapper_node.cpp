@@ -27,26 +27,31 @@ private:
   nav_msgs::OccupancyGrid real_map;
   std::vector<char> real_laser, real_lanes;
 
-  //getting parameters
-  double cellResolution = 0.05, image_scale = 160.0;
-  double real_map_width_m = 200.0, real_map_height_m = 200.0;
-
-  //calculating required parameters
-  int real_map_width = (int)(real_map_width_m/cellResolution);
-  int real_map_height = (int)(real_map_height_m/cellResolution);
-  double map_origin_position[3] = {-real_map_width_m/2.0, -real_map_height_m/2.0, 0};
+  // declaring parameters
+  double cellResolution, real_map_width_m, real_map_height_m, image_scale;
+  int real_map_width, real_map_height;
+  double map_origin_position[3];
 
 public:
   tf2_ros::Buffer tfBuffer;
-    tf2_ros::TransformListener* tfListener;
-  real_mapper(){
-  
-  	nh_.param("cellResolution", cellResolution, 0.05);
-  	nh_.param("real_map_width_m", real_map_width_m, 200.0);
-  	nh_.param("real_map_height_m", real_map_height_m, 200.0);
-  	nh_.param("image_scale", image_scale, 160.0);
+  tf2_ros::TransformListener* tfListener;
 
-  real_map.header.frame_id = "odom";
+  real_mapper()
+  {
+    // getting parameters
+  	nh_.param("cellResolution", cellResolution, 0.05);
+  	nh_.param("real_map_width_m", real_map_width_m, 40.0);
+  	nh_.param("real_map_height_m", real_map_height_m, 40.0);
+  	nh_.param("image_scale", image_scale, 100.0);
+
+    // calculating dependent parameters
+    real_map_width = (int)(real_map_width_m/cellResolution);
+    real_map_height = (int)(real_map_height_m/cellResolution);
+    map_origin_position[0] = -real_map_width_m/2.0;
+    map_origin_position[1] = -real_map_height/2.0;
+    map_origin_position[2] = 0.0;
+
+    real_map.header.frame_id = "odom";
     real_map.header.stamp = ros::Time::now();
     real_map.info.resolution = cellResolution;
     real_map.info.width = real_map_width;
@@ -57,7 +62,7 @@ public:
     pub_ = nh_.advertise<nav_msgs::OccupancyGrid>("/real_map", 1);
     sub1_ = nh_.subscribe<sensor_msgs::LaserScan>("/scan_1", 1, &real_mapper::scanCallback, this);
     sub2_ = nh_.subscribe("/top_view", 1, &real_mapper::imageCallback, this);
-  ROS_INFO("Started real_mapper");
+    ROS_INFO("Started real_mapper");
   }
 
   void scanCallback(const sensor_msgs::LaserScanConstPtr& scan_msg){
