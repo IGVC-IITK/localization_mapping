@@ -48,7 +48,7 @@ public:
     real_map_width = (int)(real_map_width_m/cellResolution);
     real_map_height = (int)(real_map_height_m/cellResolution);
     map_origin_position[0] = -real_map_width_m/2.0;
-    map_origin_position[1] = -real_map_height/2.0;
+    map_origin_position[1] = -real_map_height_m/2.0;
     map_origin_position[2] = 0.0;
 
     real_map.header.frame_id = "odom";
