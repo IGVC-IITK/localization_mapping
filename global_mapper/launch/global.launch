@@ -3,5 +3,5 @@
 
 	<!-- Front LiDAR -->
 	<node name="global_mapper" pkg="global_mapper" type="global_mapper_node" output="screen" />
-	<node pkg="tf2_ros" type="static_transform_publisher" name="bl_to_tv_broadcaster" args="4.5 4 0 1.57079 3.14159 0 base_link top_view"/>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="bl_to_tv_broadcaster" args="6.30 3.20 0 1.57079 3.14159 0 base_link top_view"/>
 </launch>
