@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+
+  <include file="$(find rplidar_ros)/launch/firebird_delta_rplidar.launch"/>
+
+	<!-- Front LiDAR -->
+  <param name="no_lane" type="bool" value="true"/> <!--true to test scan only-->
+  <param name="no_scan" type="bool" value="false"/>
+
+	<node name="local_mapper" pkg="local_mapper" type="local_mapper_node" output="screen" />
+	<node pkg="tf2_ros" type="static_transform_publisher" name="bl_to_tv_broadcaster" args="4.42 3.20 0 1.57079 3.14159 0 base_link top_view"/>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="o_to_lf_broadcaster" args="0 0 0 0 0 0 odom laser_front"/>
+</launch>
