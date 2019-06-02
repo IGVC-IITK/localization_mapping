@@ -64,7 +64,7 @@ void LocalMapper::ScanCallback (const sensor_msgs::LaserScanConstPtr& scan) {
     local_map_.data.resize(map_width_px_ * map_height_px_, -1);
   }
 
-  ROS_INFO("Processing Laser Scan");
+  // ROS_INFO("Processing Laser Scan");
 
   double angle_max = scan->angle_max, angle_min = scan->angle_min;
   double angle_inc = scan->angle_increment;
@@ -74,8 +74,8 @@ void LocalMapper::ScanCallback (const sensor_msgs::LaserScanConstPtr& scan) {
     double scan_range = scan->ranges[i];
 
     // angle limit check, NOTE: toggle per use
-    if(curr_angle > -M_PI/2 and curr_angle < M_PI/2)
-      continue;
+    // if(curr_angle > -M_PI/2 and curr_angle < M_PI/2)
+      // continue;
 
     if(scan_range > scan->range_max or scan_range < scan->range_min)
       continue;
@@ -136,7 +136,7 @@ void LocalMapper::ImageCallback(const sensor_msgs::ImageConstPtr& img) {
 
   geometry_msgs::PointStamped point_cam_frame, point_robot_frame;
   int x,y;
-  ROS_INFO("Processing Image");
+  // ROS_INFO("Processing Image");
 
   for(int i = 0; i < im.rows; ++i) {
     for(int j = 0; j < im.cols; ++j) {

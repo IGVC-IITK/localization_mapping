@@ -3,19 +3,23 @@
 
 	<!-- Front LiDAR -->
 	<node name="rplidarNodeFront" pkg="rplidar_ros" type="rplidarNode" output="screen">
-		<param name="serial_port"         type="string" value="/dev/ttyUSB1"/>  
-		<param name="serial_baudrate"     type="int"    value="115200"/>
+		<param name="serial_port"         type="string" value="/dev/ttyUSB0"/>
 		<param name="frame_id"            type="string" value="laser_front"/>
 		<param name="inverted"            type="bool"   value="false"/>
 		<param name="angle_compensate"    type="bool"   value="true"/>
 		<rosparam param="ignore_angles_endpoints">[-15.0, 105.0]</rosparam>
-		<remap from="/scan" to="/scan_1"/>
+
+    <param name="serial_baudrate"     type="int"    value="115200"/> <!--others-->
+
+    <!--param name="serial_baudrate"     type="int"    value="256000"/>
+    <param name="scan_mode"           type="string" value="Sensitivity"/--> <!--a3-->
 	</node>
 	<node pkg="tf2_ros" type="static_transform_publisher" name="bl_to_lf_broadcaster" args="0.53 0 0.205 2.3562 0 0 base_link laser_front"/>
+	<node pkg="tf2_ros" type="static_transform_publisher" name="bf_to_lf_broadcaster" args="0 0 0 0 0 0 odom laser_front"/>
 
 	<!-- Rear LiDAR -->
 	<!-- <node name="rplidarNodeRear" pkg="rplidar_ros"  type="rplidarNode" output="screen">
-		<param name="serial_port"         type="string" value="/dev/ttyUSB2"/>  
+		<param name="serial_port"         type="string" value="/dev/ttyUSB2"/>
 		<param name="serial_baudrate"     type="int"    value="115200"/>
 		<param name="frame_id"            type="string" value="laser_rear"/>
 		<param name="inverted"            type="bool"   value="false"/>
