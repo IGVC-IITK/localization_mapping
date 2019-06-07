@@ -3,6 +3,7 @@
 #include "nav_msgs/Odometry.h"
 #include "std_msgs/String.h"
 #include "std_msgs/UInt8.h"
+#include "std_msgs/Bool.h"
 #include "tf/tf.h"
 #include "tf/transform_datatypes.h"
 #include "tf/transform_listener.h"
@@ -26,6 +27,7 @@ public:
   void spin();
   void publish();
   void cmdVelCallback(const geometry_msgs::TwistConstPtr&);
+  void veloFilterCb (const std_msgs::BoolConstPtr&);
   void gpoutCallback(const std_msgs::UInt8&);
 
 protected:
@@ -78,6 +80,7 @@ protected:
   ros::Publisher sonarPub;
   ros::Publisher irRangeSensorPub;
   ros::Subscriber sub;
+  ros::Subscriber filter_sub;
   ros::Subscriber sub_gpout;
   ros::Publisher gpioOutPub;
   sensor_msgs::Imu imuData;
@@ -92,6 +95,10 @@ protected:
   int16 gyroXYZ_Zero[3];
   float gyro_angle;
   double orientation_imu;
+
+  // the following lines have been added later
+  bool filter_value_ = false;
+  double filter_stamp_ = 0;
 };
 
 Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
@@ -135,6 +142,9 @@ Ros0xRobotNode::Ros0xRobotNode(ros::NodeHandle nh) : n(nh)
   sub = n.subscribe("cmd_vel", 1,
                     (boost::function<void(const geometry_msgs::TwistConstPtr&)>)
                         boost::bind(&Ros0xRobotNode::cmdVelCallback, this, _1));
+
+  // TODO: add filter subscriber
+  filter_sub = n.subscribe("/stop_robot", 1, &Ros0xRobotNode::veloFilterCb, this);
 
   sub_gpout =
       n.subscribe("gpio/gpout", 1, &Ros0xRobotNode::gpoutCallback, this);
@@ -573,13 +583,25 @@ void Ros0xRobotNode::setTwistCovariance(nav_msgs::Odometry* position)
 
 void Ros0xRobotNode::cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg)
 {
-  float velocityRight, velocityLeft, radiusOfCurv;
-  ROS_INFO_THROTTLE(1.0, "%f, %f", msg->linear.x, msg->angular.z);
+  double linx = msg->linear.x, angz = msg->angular.z;
 
-  OxRobot->setVelocity2D(OxRobot->comm_handle, msg->linear.x, msg->angular.z,
+  if((ros::Time::now().toSec() - filter_stamp_ < 1.0) and filter_value_) {
+    linx = 0;
+    angz = 0;
+  }
+
+  float velocityRight, velocityLeft, radiusOfCurv;
+  ROS_INFO_THROTTLE(1.0, "%f, %f", linx, angz);
+
+  OxRobot->setVelocity2D(OxRobot->comm_handle, linx, angz,
                          axelLength / 1000.0);
 
   OxRobot->forward(OxRobot->comm_handle);
+}
+
+void Ros0xRobotNode::veloFilterCb(const std_msgs::BoolConstPtr& msg) {
+  filter_value_ = msg->data;
+  filter_stamp_ = ros::Time::now().toSec();
 }
 
 void Ros0xRobotNode::gpoutCallback(const std_msgs::UInt8& msg)
